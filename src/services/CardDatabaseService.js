@@ -1,54 +1,31 @@
 /**
  * CardDatabaseService - Manages Yu-Gi-Oh! card database API calls and local caching
  * Implements 7-day caching strategy to reduce API calls
- * Uses Vercel Blob as primary source with YGOPro API fallback
+ * Uses YGOPro API for card data and images
  */
 
 const CardDatabaseService = {
   CACHE_KEY: 'yugioh_cards_cache',
   CACHE_DURATION: 7 * 24 * 60 * 60 * 1000,
 
-  // Blob storage configuration
-  BLOB_BASE_URL: 'https://ws8edzxhvgmmgmdj.public.blob.vercel-storage.com', // Updated with correct Vercel Blob URL
-  BLOB_ENABLED: true, // Enable blob storage for card images
-
   async fetchCards() {
     try {
-      // Try Vercel Blob first for faster, more reliable access
-      console.log('Fetching cards from Vercel Blob...');
-      const blobUrl = `${this.BLOB_BASE_URL}/cardDatabase-full.json`;
-      const response = await fetch(blobUrl);
+      console.log('📡 Fetching cards from YGOPro API...');
+      const response = await fetch('https://db.ygoprodeck.com/api/v7/cardinfo.php');
+      console.log('API response status:', response.status);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Loaded from Vercel Blob:', data.data ? data.data.length : 0, 'cards');
-        return data.data || [];
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
       }
 
-      // Fallback to YGOPro API if Blob fails
-      console.warn('⚠️  Vercel Blob fetch failed, falling back to YGOPro API...');
-      throw new Error('Blob fetch failed, trying fallback');
+      const data = await response.json();
+      console.log('✅ Loaded from YGOPro API:', data.data ? data.data.length : 0, 'cards');
+      console.log('First card example:', data.data ? data.data[0] : 'No cards');
 
+      return data.data || [];
     } catch (error) {
-      // Fallback to YGOPro API
-      try {
-        console.log('📡 Fetching cards from YGOPro API (fallback)...');
-        const response = await fetch('https://db.ygoprodeck.com/api/v7/cardinfo.php');
-        console.log('API response status:', response.status);
-
-        if (!response.ok) {
-          throw new Error(`API returned ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('✅ Loaded from YGOPro API:', data.data ? data.data.length : 0, 'cards');
-        console.log('First card example:', data.data ? data.data[0] : 'No cards');
-
-        return data.data || [];
-      } catch (fallbackError) {
-        console.error('❌ Both Blob and API fetch failed:', fallbackError);
-        return [];
-      }
+      console.error('❌ API fetch failed:', error);
+      return [];
     }
   },
 
@@ -83,51 +60,36 @@ const CardDatabaseService = {
   },
 
   /**
-   * Sanitize card name for URL generation (matches migration script)
-   * @param {string} cardName - The card name
-   * @returns {string} Sanitized card name
-   */
-  sanitizeCardName(cardName) {
-    const result = cardName
-      .replace(/[^a-zA-Z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .toLowerCase()
-      .substring(0, 50);
-    console.log(`Sanitized "${cardName}" -> "${result}"`);
-    return result;
-  },
-
-  /**
-   * Generate optimized image URL for a card using new structure
-   * @param {string} cardName - The card name
+   * Generate image URL using YGOPro API
+   * @param {string} cardId - The card ID
    * @param {string} size - Image size ('full' or 'small')
-   * @returns {string} The optimized image URL
+   * @returns {string} The YGOPro image URL
    */
-  getImageUrl(cardName, size = 'small') {
-    if (!cardName) {
-      console.log('❌ No card name provided for image URL generation');
-      return '';
+  getImageUrl(cardId, size = 'small') {
+    if (!cardId) {
+      console.log('❌ No card ID provided for image URL generation');
+      return 'https://images.ygoprodeck.com/images/cards/card_back.jpg';
     }
 
-    const sanitizedName = this.sanitizeCardName(cardName);
-    // Always use full-size images from cards/ directory - no need for separate small images
-    const url = `${this.BLOB_BASE_URL}/cards/${sanitizedName}.webp`;
-    console.log(`🔗 Generated Vercel Blob URL for "${cardName}":`, url);
-    return url;
+    if (size === 'small') {
+      return `https://images.ygoprodeck.com/images/cards_small/${cardId}.jpg`;
+    }
+
+    return `https://images.ygoprodeck.com/images/cards/${cardId}.jpg`;
   },
 
   /**
-   * Generate image props for WebP with YGOPro fallback
-   * @param {string} cardName - The card name
-   * @param {string} cardId - The card ID (for fallback)
+   * Generate image props for YGOPro API
+   * @param {string} cardName - The card name (for alt text)
+   * @param {string} cardId - The card ID
    * @param {string} size - Image size ('full' or 'small')
-   * @returns {object} Props for HTML img element with WebP support
+   * @returns {object} Props for HTML img element
    */
   getImageProps(cardName, cardId, size = 'small') {
-    const webpUrl = this.getImageUrl(cardName, size);
+    const imageUrl = this.getImageUrl(cardId, size);
 
     return {
-      src: webpUrl,
+      src: imageUrl,
       alt: cardName || 'Yu-Gi-Oh Card',
       loading: 'lazy'
     };

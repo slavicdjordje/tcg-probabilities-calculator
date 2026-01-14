@@ -1,14 +1,14 @@
 import React from 'react';
 
 /**
- * Optimized card image component with WebP from Vercel Blob Storage
- * 
+ * Card image component using YGOPro API
+ *
  * Features:
- * - WebP format with YGOPro fallback for compatibility  
+ * - Direct YGOPro API image loading
  * - Lazy loading for performance
  * - Multiple size options (full, small)
- * - Error handling with fallback to YGOPro URLs
- * - Uses card name for Blob URLs, card ID for fallbacks
+ * - Error handling with placeholder fallback
+ * - Uses card ID for image URLs
  */
 
 const CardImage = ({ 
@@ -26,53 +26,36 @@ const CardImage = ({
   const actualCardId = cardData?.cardId || cardId;
   const isBlank = !cardData || cardData.type === 'blank' || (!actualCardName && !actualCardId);
   
-  // Blob storage configuration - updated to match AC requirements
-  const BLOB_BASE_URL = 'https://ws8edzxhvgmmgmdj.public.blob.vercel-storage.com'; // Correct Vercel Blob URL
-  const BLOB_ENABLED = true; // Enable blob storage for card images
-  const BLANK_CARD_URL = 'https://ws8edzxhvgmmgmdj.public.blob.vercel-storage.com/cards/yugioh_card_back_blank.jpg';
-  
+  // YGOPro API configuration
+  const BLANK_CARD_URL = 'https://images.ygoprodeck.com/images/cards/card_back.jpg';
+
   /**
-   * Sanitize card name for URL generation (matches migration script)
+   * Generate image URL using YGOPro API
    */
-  const sanitizeCardName = (name) => {
-    if (!name) return '';
-    return name
-      .replace(/[^a-zA-Z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .toLowerCase()
-      .substring(0, 50);
-  };
-  
-  /**
-   * Generate image URLs using new card name-based structure
-   */
-  const getImageUrls = () => {
-    const fallbackUrl = actualCardId ? 
-      `https://images.ygoprodeck.com/images/cards/${actualCardId}.jpg` :
-      `https://images.ygoprodeck.com/images/cards/small.jpg`;
-    
-    if (!BLOB_ENABLED || !actualCardName) {
-      return { fallback: fallbackUrl };
+  const getImageUrl = () => {
+    if (!actualCardId) {
+      return 'https://images.ygoprodeck.com/images/cards/card_back.jpg';
     }
-    
-    const sanitizedName = sanitizeCardName(actualCardName);
-    // Always use full-size images from cards/ directory - no need for separate small images
-    
-    return {
-      webp: `${BLOB_BASE_URL}/cards/${sanitizedName}.webp`,
-      fallback: fallbackUrl
-    };
+
+    // Use small images for better performance when size is small
+    if (size === 'small') {
+      return `https://images.ygoprodeck.com/images/cards_small/${actualCardId}.jpg`;
+    }
+
+    // Use full-size images for larger displays
+    return `https://images.ygoprodeck.com/images/cards/${actualCardId}.jpg`;
   };
-  
-  const urls = getImageUrls();
-  
+
+  const imageUrl = getImageUrl();
+
   /**
-   * Handle image loading errors - fallback to YGOPro
+   * Handle image loading errors
    */
   const handleError = (event) => {
-    if (event.target.src !== urls.fallback) {
-      console.warn(`Failed to load blob image for card "${actualCardName}", falling back to YGOPro`);
-      event.target.src = urls.fallback;
+    // Fallback to card back if image fails to load
+    if (event.target.src !== BLANK_CARD_URL) {
+      console.warn(`Failed to load image for card "${actualCardName}" (ID: ${actualCardId})`);
+      event.target.src = BLANK_CARD_URL;
     }
   };
   
@@ -158,21 +141,11 @@ const CardImage = ({
     onError: handleError,
     title: actualCardName
   };
-  
-  // If blob disabled or no WebP URL, use fallback
-  if (!BLOB_ENABLED || !urls.webp) {
-    return (
-      <img
-        src={urls.fallback}
-        {...imageProps}
-      />
-    );
-  }
-  
-  // Use WebP with fallback - simpler structure for modern browsers
+
+  // Render card image from YGOPro API
   return (
     <img
-      src={urls.webp}
+      src={imageUrl}
       {...imageProps}
     />
   );

@@ -26,15 +26,15 @@ const CardImage = ({
   const actualCardId = cardData?.cardId || cardId;
   const isBlank = !cardData || cardData.type === 'blank' || (!actualCardName && !actualCardId);
   
-  // YGOPro API configuration
-  const BLANK_CARD_URL = 'https://images.ygoprodeck.com/images/cards/card_back.jpg';
+  // Local card back configuration
+  const BLANK_CARD_URL = '/card-back.jpg';
 
   /**
    * Generate image URL using YGOPro API
    */
   const getImageUrl = () => {
     if (!actualCardId) {
-      return 'https://images.ygoprodeck.com/images/cards/card_back.jpg';
+      return BLANK_CARD_URL;
     }
 
     // Use small images for better performance when size is small

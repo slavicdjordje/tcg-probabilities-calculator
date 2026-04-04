@@ -259,8 +259,8 @@ export const ENGINE_DATABASE = [
     ],
   },
 
-  // ── Swordsoul / Tenyi ────────────────────────────────────────────────────
-  {
+  // ── Swordsoul / Tenyi (hidden until ready) ───────────────────────────────
+  /* {
     name: 'Swordsoul / Tenyi',
     identifierCards: [
       'Swordsoul of Mo Ye',
@@ -369,7 +369,7 @@ export const ENGINE_DATABASE = [
         cards: [{ name: 'Tenyi Spirit - Adhara', minInHand: 1 }],
       },
     ],
-  },
+  }, */
 
   // ── Snake-Eye ────────────────────────────────────────────────────────────
   {

@@ -763,31 +763,54 @@ const DeckImageSection = ({ typography, cardDatabase, ydkCards, ydkCardCounts, s
                   c.starterCard.toLowerCase() === selectedCard.name.toLowerCase()
                 );
 
-                // Check if this would be the 3rd+ card (requiring AND/OR logic)
-                const wouldBeThirdPlusCard = !cardExists && combo.cards.length >= 2;
-
-                // Get current logic operator for this card if it exists
-                const existingCard = combo.cards.find(c =>
-                  c.starterCard.toLowerCase() === selectedCard.name.toLowerCase()
-                );
-                const currentLogic = existingCard?.logicOperator || 'AND';
+                const filledCards = combo.cards.filter(c => c.starterCard && c.starterCard.trim() !== '');
+                let cardHint = null;
+                if (filledCards.length === 1) {
+                  cardHint = filledCards[0].starterCard;
+                } else if (filledCards.length > 1) {
+                  cardHint = `${filledCards[0].starterCard} +${filledCards.length - 1} more`;
+                }
 
                 return (
                   <div
                     key={combo.id}
                     style={{
-                      marginBottom: '12px'
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '16px',
+                      padding: '12px 0',
+                      borderBottom: '1px solid var(--border-main)'
                     }}
                   >
-                    {/* Main combo button */}
+                    {/* Left: heading + card list */}
+                    <div>
+                      <div style={{
+                        ...typography.body,
+                        fontWeight: 'bold',
+                        color: 'var(--text-main)'
+                      }}>
+                        Combo {index + 1}
+                      </div>
+                      {cardHint && (
+                        <div style={{
+                          fontSize: '13px',
+                          color: 'var(--text-secondary)',
+                          marginTop: '4px',
+                          fontFamily: typography.body.fontFamily
+                        }}>
+                          {cardHint}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right: action button */}
                     <Button
                       onClick={() => {
                         if (cardExists) {
-                          // AC #7: Remove card from combo
                           removeCardFromCombo(combo.id, selectedCard);
                           showToast(`Removed ${selectedCard.name} from Combo ${index + 1}`);
                         } else {
-                          // AC #4: Add card to selected combo
                           addCardToCombo(combo.id, selectedCard);
                           showToast(`Added ${selectedCard.name} to Combo ${index + 1}`);
                         }
@@ -795,19 +818,17 @@ const DeckImageSection = ({ typography, cardDatabase, ydkCards, ydkCardCounts, s
                       disabled={!hasAnyCards && index !== 0}
                       variant={cardExists ? "primary" : "secondary"}
                       style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '12px',
+                        flexShrink: 0,
+                        padding: '8px 14px',
                         borderRadius: '8px',
                         fontSize: typography.body.fontSize,
                         lineHeight: typography.body.lineHeight,
-                        fontFamily: typography.body.fontFamily
+                        fontFamily: typography.body.fontFamily,
+                        whiteSpace: 'nowrap'
                       }}
                       className="hover:bg-opacity-80 transition-all"
                     >
-                      <div style={{ fontWeight: 'medium', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {cardExists ? '✓' : '+'} Combo {index + 1}
-                      </div>
+                      {cardExists ? `✓ Added to Combo ${index + 1}` : `Add to Combo ${index + 1}`}
                     </Button>
                   </div>
                 );

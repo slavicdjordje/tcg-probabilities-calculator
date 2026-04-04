@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import YdkParser from '../../services/YdkParser';
 import HandTrapService from '../../services/HandTrapService';
+import ComboRecognitionService from '../../services/ComboRecognitionService';
+import { createCombo } from '../../utils/comboFactory';
 import Icon from '../../components/Icon';
 import CardSearchDrawer from '../../components/CardSearchDrawer.jsx';
 import { Button } from '../../components/ui';
@@ -22,7 +24,8 @@ const YdkImporter = ({
   showToast,
   setInitialDeckZones,
   deckZones,
-  setDeckZones
+  setDeckZones,
+  onEnginesRecognized,
 }) => {
   const [showClipboardField, setShowClipboardField] = useState(false);
   const [clipboardContent, setClipboardContent] = useState('');
@@ -92,6 +95,22 @@ const YdkImporter = ({
       if (parseResult.deckZones && setInitialDeckZones) {
         setInitialDeckZones(parseResult.deckZones);
         console.log('🎯 YdkImporter: Populating deck builder with:', parseResult.deckZones);
+      }
+
+      // Engine recognition: auto-populate combos if known engines are detected
+      const matchedEngines = ComboRecognitionService.recognizeEngines(parseResult.cardCounts);
+      if (matchedEngines.length > 0) {
+        const recognizedCombos = ComboRecognitionService.buildCombos(
+          matchedEngines,
+          parseResult.cardCounts,
+          uniqueCards
+        );
+        if (recognizedCombos.length > 0) {
+          setCombos(recognizedCombos);
+          if (onEnginesRecognized) {
+            onEnginesRecognized(recognizedCombos, parseResult.cardCounts, uniqueCards, mainDeckCardCount);
+          }
+        }
       }
 
       if (parseResult.unmatchedIds.length > 0) {
@@ -205,13 +224,29 @@ const YdkImporter = ({
         console.log('🎯 YdkImporter (clipboard): Populating deck builder with:', parseResult.deckZones);
       }
 
+      // Engine recognition: auto-populate combos if known engines are detected
+      const matchedEngines = ComboRecognitionService.recognizeEngines(parseResult.cardCounts);
+      if (matchedEngines.length > 0) {
+        const recognizedCombos = ComboRecognitionService.buildCombos(
+          matchedEngines,
+          parseResult.cardCounts,
+          uniqueCards
+        );
+        if (recognizedCombos.length > 0) {
+          setCombos(recognizedCombos);
+          if (onEnginesRecognized) {
+            onEnginesRecognized(recognizedCombos, parseResult.cardCounts, uniqueCards, mainDeckCardCount);
+          }
+        }
+      }
+
       setShowClipboardField(false);
       setClipboardContent('');
 
       if (parseResult.unmatchedIds.length > 0) {
         alert("Some cards from your YDK file weren't matched");
       }
-      
+
     } catch (error) {
       console.error('Clipboard YDK processing error:', error);
       alert(error.message);

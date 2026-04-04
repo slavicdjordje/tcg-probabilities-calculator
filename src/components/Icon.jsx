@@ -24,7 +24,9 @@ import {
   MagnifyingGlass,
   Funnel,
   Image,
-  Video
+  Video,
+  CaretUp,
+  CaretDown,
 } from '@phosphor-icons/react';
 
 const Icon = ({ name, variant = 'main', ariaLabel, className = '', style = {}, ...props }) => {
@@ -53,7 +55,9 @@ const Icon = ({ name, variant = 'main', ariaLabel, className = '', style = {}, .
     'magnifying-glass': MagnifyingGlass,
     'funnel': Funnel,
     'image': Image,
-    'video': Video
+    'video': Video,
+    'caret-up': CaretUp,
+    'caret-down': CaretDown,
   };
 
   const IconComponent = iconMap[name];

@@ -145,7 +145,7 @@ export default function TCGCalculator() {
         recognizedCombos, newDeckSize, calculatedResults.individual
       );
       setGeneratedTitle(title);
-      setTimeout(() => scrollToCalculationDashboard(), 200);
+      setTimeout(() => scrollToCalculationDashboard(), 800);
     }, 100);
   };
 
@@ -307,7 +307,7 @@ export default function TCGCalculator() {
           setIsRestoringFromURL(false);
           
           // Auto-scroll to Calculation Dashboard
-          setTimeout(() => scrollToCalculationDashboard(), 200);
+          setTimeout(() => scrollToCalculationDashboard(), 800);
         }, 100);
       }
     };
@@ -756,7 +756,7 @@ export default function TCGCalculator() {
         setGeneratedTitle(title);
 
         // Auto-scroll to Calculation Dashboard
-        setTimeout(() => scrollToCalculationDashboard(), 100);
+        setTimeout(() => scrollToCalculationDashboard(), 800);
       } finally {
         // Clear loading state
         setIsCalculating(false);

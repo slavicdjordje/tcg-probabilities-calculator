@@ -49,7 +49,7 @@ const DeckCard = ({ card, index = 0, onDragStart, onTouchStart, onTouchMove, onT
       initial={{ opacity: 0, scale: 0.75 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.75 }}
-      transition={{ duration: 0.2, delay: index * 0.025, ease: 'easeOut' }}
+      transition={{ duration: 0.2, delay: Math.min(index, 15) * 0.03, ease: 'easeOut' }}
       draggable
       onDragStart={(e) => onDragStart(e, card)}
       onTouchStart={(e) => onTouchStart(e, card)}

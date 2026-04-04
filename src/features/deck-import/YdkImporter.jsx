@@ -343,35 +343,11 @@ const YdkImporter = ({
           >
             From clipboard
           </button>
-          <div
-            style={{
-              width: '1px',
-              height: '16px',
-              backgroundColor: 'var(--text-secondary)',
-              opacity: 0.3
-            }}
-          />
-          <button
-            onClick={() => setShowCardSearch(!showCardSearch)}
-            disabled={isLoadingDeck}
-            className="inline-flex items-center px-0 py-2 hover:opacity-80 transition-opacity"
-            style={{
-              backgroundColor: 'transparent',
-              border: 'none',
-              color: 'var(--text-secondary)',
-              borderRadius: '999px',
-              userSelect: 'none',
-              cursor: isLoadingDeck ? 'not-allowed' : 'pointer',
-              ...typography.body
-            }}
-          >
-            Search cards
-          </button>
         </div>
       </div>
       
       {/* AC #1: Placeholder text when no YDK file is uploaded */}
-      {!uploadedYdkFile && !showClipboardField && !isLoadingDeck && !showCardSearch && (
+      {!uploadedYdkFile && !showClipboardField && !isLoadingDeck && (
         <div className="mb-4">
           <p style={{...typography.body, color: 'var(--text-secondary)', fontSize: '14px'}}>
             Upload your decklist to preview it
@@ -483,19 +459,6 @@ const YdkImporter = ({
       
       {/* AC #2: Removed old decklist image display - now unified with deck builder */}
 
-      {/* AC #2-3: Card Search Drawer - shown below upload text */}
-      {showCardSearch && (
-        <div className="mb-4">
-          <CardSearchDrawer
-            isOpen={showCardSearch}
-            onClose={() => setShowCardSearch(false)}
-            onCardSelect={handleCardSelect}
-            addCardToDeckZone={addCardToDeckZone}
-            deckZones={deckZones}
-            typography={typography}
-          />
-        </div>
-      )}
     </div>
   );
 };

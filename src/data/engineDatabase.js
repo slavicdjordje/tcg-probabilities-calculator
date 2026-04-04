@@ -259,6 +259,118 @@ export const ENGINE_DATABASE = [
     ],
   },
 
+  // ── Swordsoul / Tenyi ────────────────────────────────────────────────────
+  {
+    name: 'Swordsoul / Tenyi',
+    identifierCards: [
+      'Swordsoul of Mo Ye',
+      'Swordsoul Strategist Longyuan',
+      'Swordsoul Emergence',
+      'Heavenly Dragon Circle',
+      'Vessel for the Dragon Cycle',
+    ],
+    comboTemplates: [
+      // ── 1-card starters ──
+      {
+        name: 'Swordsoul of Mo Ye',
+        cards: [{ name: 'Swordsoul of Mo Ye', minInHand: 1 }],
+      },
+      {
+        name: 'Swordsoul Strategist Longyuan',
+        cards: [{ name: 'Swordsoul Strategist Longyuan', minInHand: 1 }],
+      },
+      {
+        name: 'Incredible Ecclesia, the Virtuous',
+        cards: [{ name: 'Incredible Ecclesia, the Virtuous', minInHand: 1 }],
+      },
+      {
+        name: 'Swordsoul Emergence',
+        cards: [{ name: 'Swordsoul Emergence', minInHand: 1 }],
+      },
+      {
+        name: 'Heavenly Dragon Circle',
+        cards: [{ name: 'Heavenly Dragon Circle', minInHand: 1 }],
+      },
+      {
+        name: 'Vessel for the Dragon Cycle',
+        cards: [{ name: 'Vessel for the Dragon Cycle', minInHand: 1 }],
+      },
+      {
+        name: 'Tenyi Spirit - Ashuna',
+        cards: [{ name: 'Tenyi Spirit - Ashuna', minInHand: 1 }],
+      },
+      {
+        name: 'Tenyi Spirit - Shthana',
+        cards: [{ name: 'Tenyi Spirit - Shthana', minInHand: 1 }],
+      },
+      {
+        name: 'Tenyi Spirit - Vishuda',
+        cards: [{ name: 'Tenyi Spirit - Vishuda', minInHand: 1 }],
+      },
+      // ── 2-card combos ──
+      {
+        name: 'Mo Ye + Ecclesia',
+        cards: [
+          { name: 'Swordsoul of Mo Ye', minInHand: 1 },
+          { name: 'Incredible Ecclesia, the Virtuous', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Longyuan + Ecclesia',
+        cards: [
+          { name: 'Swordsoul Strategist Longyuan', minInHand: 1 },
+          { name: 'Incredible Ecclesia, the Virtuous', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Ashuna + Shthana',
+        cards: [
+          { name: 'Tenyi Spirit - Ashuna', minInHand: 1 },
+          { name: 'Tenyi Spirit - Shthana', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Mo Ye + Ashuna',
+        cards: [
+          { name: 'Swordsoul of Mo Ye', minInHand: 1 },
+          { name: 'Tenyi Spirit - Ashuna', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Mo Ye + Taia',
+        cards: [
+          { name: 'Swordsoul of Mo Ye', minInHand: 1 },
+          { name: 'Swordsoul of Taia', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Emergence + Ecclesia',
+        cards: [
+          { name: 'Swordsoul Emergence', minInHand: 1 },
+          { name: 'Incredible Ecclesia, the Virtuous', minInHand: 1 },
+        ],
+      },
+      // ── 3-card combo ──
+      {
+        name: 'Ashuna + Shthana + Adhara',
+        cards: [
+          { name: 'Tenyi Spirit - Ashuna', minInHand: 1 },
+          { name: 'Tenyi Spirit - Shthana', minInHand: 1 },
+          { name: 'Tenyi Spirit - Adhara', minInHand: 1 },
+        ],
+      },
+      // ── Extenders ──
+      {
+        name: 'Swordsoul of Taia',
+        cards: [{ name: 'Swordsoul of Taia', minInHand: 1 }],
+      },
+      {
+        name: 'Tenyi Spirit - Adhara',
+        cards: [{ name: 'Tenyi Spirit - Adhara', minInHand: 1 }],
+      },
+    ],
+  },
+
   // ── Snake-Eye ────────────────────────────────────────────────────────────
   {
     name: 'Snake-Eye',

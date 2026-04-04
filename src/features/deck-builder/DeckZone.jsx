@@ -50,7 +50,7 @@ const DeckZone = ({
         {cards.length === 0 ? (
           <div className="flex items-center justify-center h-24">
             <p style={{...typography.body, color: 'var(--text-secondary)'}}>
-              Drop cards here or click "Search Cards"
+              Drop cards here
             </p>
           </div>
         ) : (

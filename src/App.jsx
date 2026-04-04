@@ -120,11 +120,34 @@ export default function TCGCalculator() {
   }, [initialDeckZones]);
 
   // Scroll to Calculation Dashboard function
+  // Uses a manual rAF loop to bypass prefers-reduced-motion suppression in
+  // Chrome/Edge and Tailwind's preflight override of scroll-behavior: smooth.
   const scrollToCalculationDashboard = () => {
-    if (calculationDashboardRef.current) {
-      const top = calculationDashboardRef.current.getBoundingClientRect().top + window.scrollY - 16;
-      window.scrollTo({ top, behavior: 'smooth' });
-    }
+    if (!calculationDashboardRef.current) return;
+
+    const targetTop =
+      calculationDashboardRef.current.getBoundingClientRect().top +
+      window.scrollY - 16;
+
+    const startTop = window.scrollY;
+    const distance = targetTop - startTop;
+    if (Math.abs(distance) < 1) return;
+
+    const duration = 600;
+    let startTime = null;
+
+    const easeInOutCubic = (t) =>
+      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+    const step = (timestamp) => {
+      if (startTime === null) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      window.scrollTo(0, startTop + distance * easeInOutCubic(progress));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+
+    requestAnimationFrame(step);
   };
 
   // Engine recognition callback: auto-calculate and scroll after engines are detected

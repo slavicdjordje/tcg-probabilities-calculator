@@ -341,7 +341,7 @@ const YdkImporter = ({
               ...typography.body
             }}
           >
-            From clipboard
+            YDKe from clipboard
           </button>
         </div>
       </div>

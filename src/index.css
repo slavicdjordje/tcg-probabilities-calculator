@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scroll-behavior: smooth;
+}
+
 /* CSS Custom Properties for July Design System */
 :root {
   /* Colors */

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from '../../components/ui';
 import Icon from '../../components/Icon';
 import DeckZone from './DeckZone';
@@ -684,8 +685,13 @@ const DeckImageSection = ({ typography, cardDatabase, ydkCards, ydkCardCounts, s
       {/* Card Search functionality moved to YdkImporter */}
 
       {/* AC #2-3: Add to combo overlay */}
+      <AnimatePresence>
       {showComboOverlay && selectedCard && (
-        <div
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
           style={{
             position: 'fixed',
             top: 0,
@@ -705,7 +711,11 @@ const DeckImageSection = ({ typography, cardDatabase, ydkCards, ydkCardCounts, s
             }
           }}
         >
-          <div
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 24 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
             style={{
               backgroundColor: 'var(--bg-main)',
               borderRadius: '16px',
@@ -899,9 +909,10 @@ const DeckImageSection = ({ typography, cardDatabase, ydkCards, ydkCardCounts, s
                 </div>
               );
             })()}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 };

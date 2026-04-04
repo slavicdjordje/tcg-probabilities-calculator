@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { AnimatePresence } from 'framer-motion';
 
 // Custom Hooks
 import useCombos from './hooks/useCombos';
@@ -1562,19 +1563,15 @@ useEffect(() => {
         <Footer typography={typography} />
 
         {/* Toast notification */}
-        {toastMessage && (
-          <div
-            className="fixed bottom-4 right-4 px-4 py-2 rounded-md"
-            style={{
-              backgroundColor: 'var(--bg-action)',
-              color: 'var(--text-action)',
-              zIndex: 1000,
-              ...typography.body
-            }}
-          >
-            {toastMessage}
-          </div>
-        )}
+        <AnimatePresence>
+          {toastMessage && (
+            <Toast
+              key={toastMessage}
+              message={toastMessage}
+              onClose={() => setToastMessage('')}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

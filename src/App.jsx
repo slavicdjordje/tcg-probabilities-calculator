@@ -122,10 +122,8 @@ export default function TCGCalculator() {
   // Scroll to Calculation Dashboard function
   const scrollToCalculationDashboard = () => {
     if (calculationDashboardRef.current) {
-      calculationDashboardRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
+      const top = calculationDashboardRef.current.getBoundingClientRect().top + window.scrollY - 16;
+      window.scrollTo({ top, behavior: 'smooth' });
     }
   };
 

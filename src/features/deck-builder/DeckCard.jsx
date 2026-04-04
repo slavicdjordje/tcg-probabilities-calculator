@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import CardDatabaseService from '../../services/CardDatabaseService';
 import { Button } from '../../components/ui';
 import { XCircle } from '@phosphor-icons/react';
 
-const DeckCard = ({ card, onDragStart, onTouchStart, onTouchMove, onTouchEnd, onRemove, onCardClick, combos, ydkCardCounts, typography }) => {
+const DeckCard = ({ card, index = 0, onDragStart, onTouchStart, onTouchMove, onTouchEnd, onRemove, onCardClick, combos, ydkCardCounts, typography }) => {
   const [imageError, setImageError] = useState(false);
   const imageProps = CardDatabaseService.getImageProps(card.name, card.cardId, 'small');
 
@@ -43,7 +44,12 @@ const DeckCard = ({ card, onDragStart, onTouchStart, onTouchMove, onTouchEnd, on
   const cardCombos = getCardCombos(card.name);
 
   return (
-    <div
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.75 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.75 }}
+      transition={{ duration: 0.2, delay: index * 0.025, ease: 'easeOut' }}
       draggable
       onDragStart={(e) => onDragStart(e, card)}
       onTouchStart={(e) => onTouchStart(e, card)}
@@ -189,7 +195,7 @@ const DeckCard = ({ card, onDragStart, onTouchStart, onTouchMove, onTouchEnd, on
       >
         <XCircle size={20} weight="fill" color="#333" />
       </button>
-    </div>
+    </motion.div>
   );
 };
 

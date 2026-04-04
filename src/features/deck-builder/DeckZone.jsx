@@ -1,4 +1,5 @@
 import React from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { Button } from '../../components/ui';
 import DeckCard from './DeckCard';
 
@@ -59,21 +60,24 @@ const DeckZone = ({
               gridTemplateColumns: `repeat(${maxCards}, minmax(0, 1fr))`
             }}
           >
-            {cards.map((card) => (
-              <DeckCard
-                key={card.id}
-                card={card}
-                onDragStart={handleDragStart}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                onRemove={() => onRemoveCard(card.id, zone)}
-                onCardClick={(card, event) => onCardClick(card, event, zone)}
-                combos={combos}
-                ydkCardCounts={ydkCardCounts}
-                typography={typography}
-              />
-            ))}
+            <AnimatePresence>
+              {cards.map((card, index) => (
+                <DeckCard
+                  key={card.id}
+                  card={card}
+                  index={index}
+                  onDragStart={handleDragStart}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  onRemove={() => onRemoveCard(card.id, zone)}
+                  onCardClick={(card, event) => onCardClick(card, event, zone)}
+                  combos={combos}
+                  ydkCardCounts={ydkCardCounts}
+                  typography={typography}
+                />
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </div>

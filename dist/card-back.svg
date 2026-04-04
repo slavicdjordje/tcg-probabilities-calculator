@@ -1,0 +1,51 @@
+<svg width="421" height="614" viewBox="0 0 421 614" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Card background - tan/brown color -->
+  <rect width="421" height="614" rx="12" fill="#d4a574"/>
+
+  <!-- Dark border -->
+  <rect x="8" y="8" width="405" height="598" rx="8" fill="none" stroke="#2a1810" stroke-width="6"/>
+  <rect x="18" y="18" width="385" height="578" rx="6" fill="none" stroke="#5a3820" stroke-width="3"/>
+
+  <!-- Inner tan area -->
+  <rect x="30" y="30" width="361" height="554" rx="6" fill="#c99960"/>
+
+  <!-- Center circle design -->
+  <circle cx="210.5" cy="307" r="140" fill="none" stroke="#2a1810" stroke-width="4"/>
+  <circle cx="210.5" cy="307" r="130" fill="none" stroke="#5a3820" stroke-width="2"/>
+  <circle cx="210.5" cy="307" r="110" fill="#d4a574" stroke="#2a1810" stroke-width="3"/>
+
+  <!-- Inner decorative circle -->
+  <circle cx="210.5" cy="307" r="80" fill="none" stroke="#2a1810" stroke-width="2"/>
+  <circle cx="210.5" cy="307" r="70" fill="none" stroke="#5a3820" stroke-width="1"/>
+
+  <!-- Center star/burst pattern -->
+  <g transform="translate(210.5, 307)">
+    <path d="M0,-50 L10,-15 L50,-15 L20,10 L30,50 L0,25 L-30,50 L-20,10 L-50,-15 L-10,-15 Z" fill="#2a1810" opacity="0.6"/>
+  </g>
+
+  <!-- Decorative corner elements -->
+  <g transform="translate(50, 50)">
+    <circle r="12" fill="#2a1810"/>
+    <circle r="8" fill="#d4a574"/>
+  </g>
+  <g transform="translate(371, 50)">
+    <circle r="12" fill="#2a1810"/>
+    <circle r="8" fill="#d4a574"/>
+  </g>
+  <g transform="translate(50, 564)">
+    <circle r="12" fill="#2a1810"/>
+    <circle r="8" fill="#d4a574"/>
+  </g>
+  <g transform="translate(371, 564)">
+    <circle r="12" fill="#2a1810"/>
+    <circle r="8" fill="#d4a574"/>
+  </g>
+
+  <!-- Decorative side patterns -->
+  <rect x="35" y="280" width="15" height="54" rx="2" fill="#2a1810" opacity="0.3"/>
+  <rect x="371" y="280" width="15" height="54" rx="2" fill="#2a1810" opacity="0.3"/>
+
+  <!-- Top and bottom decorative bars -->
+  <rect x="180" y="35" width="61" height="15" rx="2" fill="#2a1810" opacity="0.3"/>
+  <rect x="180" y="564" width="61" height="15" rx="2" fill="#2a1810" opacity="0.3"/>
+</svg>

@@ -126,22 +126,135 @@ export const ENGINE_DATABASE = [
   {
     name: 'Branded / Despia',
     identifierCards: [
+      'Aluber, the Jester of Despia',
       'Branded Fusion',
-      'Aluber the Jester of Despia',
-      'Fallen of Albaz',
+      'Nadir Servant',
+      'Fallen of the White Dragon',
+      'Branded Opening',
     ],
     comboTemplates: [
+      // ── 1-card starters ──
+      {
+        name: 'Aluber, the Jester of Despia',
+        cards: [{ name: 'Aluber, the Jester of Despia', minInHand: 1 }],
+      },
+      {
+        name: 'Foolish Burial',
+        cards: [{ name: 'Foolish Burial', minInHand: 1 }],
+      },
+      {
+        name: 'Fallen of the White Dragon',
+        cards: [{ name: 'Fallen of the White Dragon', minInHand: 1 }],
+      },
+      {
+        name: 'Gold Sarcophagus',
+        cards: [{ name: 'Gold Sarcophagus', minInHand: 1 }],
+      },
       {
         name: 'Branded Fusion',
         cards: [{ name: 'Branded Fusion', minInHand: 1 }],
       },
       {
-        name: 'Aluber the Jester of Despia',
-        cards: [{ name: 'Aluber the Jester of Despia', minInHand: 1 }],
+        name: 'Branded Opening',
+        cards: [{ name: 'Branded Opening', minInHand: 1 }],
       },
       {
-        name: 'Fallen of Albaz',
-        cards: [{ name: 'Fallen of Albaz', minInHand: 1 }],
+        name: 'Springans Kitt',
+        cards: [{ name: 'Springans Kitt', minInHand: 1 }],
+      },
+      {
+        name: 'Nadir Servant',
+        cards: [{ name: 'Nadir Servant', minInHand: 1 }],
+      },
+      {
+        name: 'Keeper of Dragon Magic',
+        cards: [{ name: 'Keeper of Dragon Magic', minInHand: 1 }],
+      },
+      {
+        name: 'Fusion Deployment',
+        cards: [{ name: 'Fusion Deployment', minInHand: 1 }],
+      },
+      {
+        name: 'Starliege Seyfert',
+        cards: [{ name: 'Starliege Seyfert', minInHand: 1 }],
+      },
+      // ── 2-card combos ──
+      {
+        name: 'Aluber + Fusion Deployment',
+        cards: [
+          { name: 'Aluber, the Jester of Despia', minInHand: 1 },
+          { name: 'Fusion Deployment', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Aluber + Fallen of the White Dragon',
+        cards: [
+          { name: 'Aluber, the Jester of Despia', minInHand: 1 },
+          { name: 'Fallen of the White Dragon', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Aluber + Branded Fusion',
+        cards: [
+          { name: 'Aluber, the Jester of Despia', minInHand: 1 },
+          { name: 'Branded Fusion', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Aluber + Bystial Lubellion',
+        cards: [
+          { name: 'Aluber, the Jester of Despia', minInHand: 1 },
+          { name: 'Bystial Lubellion', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Aluber + Springans Saronir',
+        cards: [
+          { name: 'Aluber, the Jester of Despia', minInHand: 1 },
+          { name: 'Springans Saronir', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Fallen of the White Dragon + Bystial Lubellion',
+        cards: [
+          { name: 'Fallen of the White Dragon', minInHand: 1 },
+          { name: 'Bystial Lubellion', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Fallen of the White Dragon + Branded Fusion',
+        cards: [
+          { name: 'Fallen of the White Dragon', minInHand: 1 },
+          { name: 'Branded Fusion', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Quem + Bystial Lubellion',
+        cards: [
+          { name: 'Quem, the Avatar of Branded', minInHand: 1 },
+          { name: 'Bystial Lubellion', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Quem + Springans Saronir',
+        cards: [
+          { name: 'Quem, the Avatar of Branded', minInHand: 1 },
+          { name: 'Springans Saronir', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Branded in High Spirits + Bystial Lubellion',
+        cards: [
+          { name: 'Branded in High Spirits', minInHand: 1 },
+          { name: 'Bystial Lubellion', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Branded in High Spirits + Springans Saronir',
+        cards: [
+          { name: 'Branded in High Spirits', minInHand: 1 },
+          { name: 'Springans Saronir', minInHand: 1 },
+        ],
       },
     ],
   },

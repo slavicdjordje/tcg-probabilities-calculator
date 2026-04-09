@@ -10,18 +10,13 @@ const CardDatabaseService = {
 
   async fetchCards() {
     try {
-      console.log('📡 Fetching cards from YGOPro API...');
       const response = await fetch('https://db.ygoprodeck.com/api/v7/cardinfo.php');
-      console.log('API response status:', response.status);
 
       if (!response.ok) {
         throw new Error(`API returned ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('✅ Loaded from YGOPro API:', data.data ? data.data.length : 0, 'cards');
-      console.log('First card example:', data.data ? data.data[0] : 'No cards');
-
       return data.data || [];
     } catch (error) {
       console.error('❌ API fetch failed:', error);
@@ -67,7 +62,6 @@ const CardDatabaseService = {
    */
   getImageUrl(cardId, size = 'small') {
     if (!cardId) {
-      console.log('❌ No card ID provided for image URL generation');
       return 'https://images.ygoprodeck.com/images/cards/card_back.jpg';
     }
 

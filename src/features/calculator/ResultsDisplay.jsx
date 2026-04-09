@@ -226,8 +226,6 @@ const ResultsDisplay = ({
   handSize,
   combos
 }) => {
-  console.log('📊 ResultsDisplay rendered with openingHand:', openingHand);
-
   // State for managing formula visibility (AC#5, AC#6, AC#7)
   const [expandedFormulas, setExpandedFormulas] = useState(new Set());
   const [combinedFormulaExpanded, setCombinedFormulaExpanded] = useState(false);
@@ -424,10 +422,9 @@ const ResultsDisplay = ({
                 </div>
               ))
             ) : (
-              openingHand.map((cardData, index) => {
-                console.log(`🎴 Rendering card ${index}:`, cardData);
-                return <CardImage key={index} cardData={cardData} size="small" />;
-              })
+              openingHand.map((cardData, index) => (
+                <CardImage key={index} cardData={cardData} size="small" />
+              ))
             )}
           </div>
 

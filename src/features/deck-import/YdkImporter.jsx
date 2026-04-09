@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import YdkParser from '../../services/YdkParser';
 import HandTrapService from '../../services/HandTrapService';
 import ComboRecognitionService from '../../services/ComboRecognitionService';
+import ArchetypeRecognitionService from '../../services/ArchetypeRecognitionService';
+import PromotionService from '../../services/PromotionService';
 import { createCombo } from '../../utils/comboFactory';
 import Icon from '../../components/Icon';
 import CardSearchDrawer from '../../components/CardSearchDrawer.jsx';
@@ -26,6 +28,8 @@ const YdkImporter = ({
   deckZones,
   setDeckZones,
   onEnginesRecognized,
+  onDeckReady,
+  onUnknownDeck,
 }) => {
   const [showClipboardField, setShowClipboardField] = useState(false);
   const [clipboardContent, setClipboardContent] = useState('');
@@ -33,6 +37,19 @@ const YdkImporter = ({
   const [isLoadingDeck, setIsLoadingDeck] = useState(false);
   // Card search modal state
   const [showCardSearch, setShowCardSearch] = useState(false);
+
+  // Fire onUnknownDeck when no engine matched and archetype recognition returns
+  // no-match or unknown-hybrid.  Passes raw card counts + top archetype scores
+  // so the parent can hash and store the record silently.
+  const checkUnknownDeck = (cardCounts, uniqueCardsArr, cardCount) => {
+    if (!onUnknownDeck) return;
+    const promotedArchetypes = PromotionService.getPromotedArchetypes();
+    const result = ArchetypeRecognitionService.recognize(cardCounts, uniqueCardsArr, promotedArchetypes);
+    if (result.type === 'no-match' || result.type === 'unknown-hybrid') {
+      const archetypeScores = ArchetypeRecognitionService.scoreAll(cardCounts, promotedArchetypes);
+      onUnknownDeck({ cardCounts, archetypeScores, cardCount });
+    }
+  };
 
   const readFileAsText = (file) => {
     return new Promise((resolve, reject) => {
@@ -87,18 +104,16 @@ const YdkImporter = ({
         content: content
       });
       setYdkCards(uniqueCards);
-      console.log('🐛 YdkImporter (UPLOAD) - parseResult.cardCounts:', parseResult.cardCounts);
-      console.log('🐛 YdkImporter (UPLOAD) - Sample counts:', Object.entries(parseResult.cardCounts).slice(0, 5));
       setYdkCardCounts(parseResult.cardCounts);
 
       // Populate the deck builder with parsed deck zones
       if (parseResult.deckZones && setInitialDeckZones) {
         setInitialDeckZones(parseResult.deckZones);
-        console.log('🎯 YdkImporter: Populating deck builder with:', parseResult.deckZones);
       }
 
       // Engine recognition: auto-populate combos if known engines are detected
       const matchedEngines = ComboRecognitionService.recognizeEngines(parseResult.cardCounts);
+      let hadEngineMatch = false;
       if (matchedEngines.length > 0) {
         const recognizedCombos = ComboRecognitionService.buildCombos(
           matchedEngines,
@@ -106,11 +121,22 @@ const YdkImporter = ({
           uniqueCards
         );
         if (recognizedCombos.length > 0) {
+          hadEngineMatch = true;
           setCombos(recognizedCombos);
           if (onEnginesRecognized) {
             onEnginesRecognized(recognizedCombos, parseResult.cardCounts, uniqueCards, mainDeckCardCount);
           }
         }
+      }
+
+      // Unknown-deck path: when no engine matched, check archetype recognition
+      if (!hadEngineMatch) {
+        checkUnknownDeck(parseResult.cardCounts, uniqueCards, mainDeckCardCount);
+      }
+
+      // Notify parent that deck upload is complete (used for AI analysis)
+      if (onDeckReady) {
+        onDeckReady(parseResult.cardCounts, uniqueCards, mainDeckCardCount, hadEngineMatch);
       }
 
       if (parseResult.unmatchedIds.length > 0) {
@@ -221,11 +247,11 @@ const YdkImporter = ({
       // Populate the deck builder with parsed deck zones
       if (parseResult.deckZones && setInitialDeckZones) {
         setInitialDeckZones(parseResult.deckZones);
-        console.log('🎯 YdkImporter (clipboard): Populating deck builder with:', parseResult.deckZones);
       }
 
       // Engine recognition: auto-populate combos if known engines are detected
       const matchedEngines = ComboRecognitionService.recognizeEngines(parseResult.cardCounts);
+      let hadEngineMatch = false;
       if (matchedEngines.length > 0) {
         const recognizedCombos = ComboRecognitionService.buildCombos(
           matchedEngines,
@@ -233,11 +259,22 @@ const YdkImporter = ({
           uniqueCards
         );
         if (recognizedCombos.length > 0) {
+          hadEngineMatch = true;
           setCombos(recognizedCombos);
           if (onEnginesRecognized) {
             onEnginesRecognized(recognizedCombos, parseResult.cardCounts, uniqueCards, mainDeckCardCount);
           }
         }
+      }
+
+      // Unknown-deck path: when no engine matched, check archetype recognition
+      if (!hadEngineMatch) {
+        checkUnknownDeck(parseResult.cardCounts, uniqueCards, mainDeckCardCount);
+      }
+
+      // Notify parent that deck upload is complete (used for AI analysis)
+      if (onDeckReady) {
+        onDeckReady(parseResult.cardCounts, uniqueCards, mainDeckCardCount, hadEngineMatch);
       }
 
       setShowClipboardField(false);

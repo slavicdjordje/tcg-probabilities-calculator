@@ -25,11 +25,9 @@ const DeckImageSection = ({ typography, cardDatabase, ydkCards, ydkCardCounts, s
   // Update deck zones when initial deck zones are provided (from YDK upload)
   useEffect(() => {
     if (initialDeckZones) {
-      console.log('🎯 DeckImageSection: Updating deck zones with:', initialDeckZones);
       setDeckZones(initialDeckZones);
     } else if (initialDeckZones === null) {
       // Clear deck zones when YDK is removed
-      console.log('🎯 DeckImageSection: Clearing deck zones');
       setDeckZones({
         main: [],
         extra: [],
@@ -42,16 +40,6 @@ const DeckImageSection = ({ typography, cardDatabase, ydkCards, ydkCardCounts, s
   useEffect(() => {
     const mainDeckCards = deckZones.main;
     const totalCards = mainDeckCards.length;
-
-    console.log('📊 Calculating Main Deck Stats:', {
-      mainDeckLength: totalCards,
-      cards: mainDeckCards.map(card => ({
-        name: card.name,
-        type: card.type,
-        level: card.level,
-        attribute: card.attribute
-      }))
-    });
 
     const cardTypes = mainDeckCards.reduce((acc, card) => {
       if (card.type?.toLowerCase().includes('monster')) acc.monsters++;

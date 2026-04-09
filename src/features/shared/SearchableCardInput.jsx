@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import HandTrapService from '../../services/HandTrapService';
 import Icon from '../../components/Icon';
 import { Button } from '../../components/ui';
+import { TYPOGRAPHY } from '../../constants/config';
 
 const SearchableCardInput = ({ 
   value, 
@@ -24,17 +25,6 @@ const SearchableCardInput = ({
   const dropdownRef = useRef(null);
   const inputRef = useRef(null);
   const debounceTimerRef = useRef(null);
-
-  // DEBUG: Log props on mount and when they change
-  useEffect(() => {
-    console.log('🔍 SearchableCardInput props:', {
-      ydkCardCounts: ydkCardCounts ? JSON.stringify(ydkCardCounts) : 'null/undefined',
-      updateCombo: updateCombo ? 'function exists' : 'MISSING',
-      comboId,
-      cardIndex,
-      value
-    });
-  }, [ydkCardCounts, updateCombo, comboId, cardIndex, value]);
 
   // Helper function to get full card data for hand-trap checking
   const getCardData = (cardName, cardId) => {
@@ -68,15 +58,6 @@ const SearchableCardInput = ({
   // Check if current card is a hand-trap
   const currentCardData = getCardData(value, cardId);
   const isHandTrap = currentCardData ? HandTrapService.isHandTrap(currentCardData) : false;
-  
-  const typography = {
-    body: {
-      fontSize: 'var(--font-body-size)',
-      lineHeight: 'var(--font-body-line-height)',
-      color: 'var(--text-main)',
-      fontFamily: 'Geist, sans-serif'
-    }
-  };
   
   useEffect(() => {
     if (value && isEditing) {
@@ -114,10 +95,6 @@ const SearchableCardInput = ({
     
     clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(() => {
-      console.log('Searching for:', searchTerm);
-      console.log('Card database length:', cardDatabase ? cardDatabase.length : 0);
-      console.log('YDK cards length:', ydkCards ? ydkCards.length : 0);
-      
       const searchLower = searchTerm.toLowerCase();
       let matches = [];
       
@@ -146,10 +123,7 @@ const SearchableCardInput = ({
         // Combine YDK matches first, then database matches
         matches = [...ydkMatches, ...dbMatches];
       }
-      
-      console.log('Found matches:', matches.length);
-      console.log('First few matches:', matches.slice(0, 3));
-      
+
       setFilteredCards(matches);
     }, 300);
     
@@ -169,17 +143,8 @@ const SearchableCardInput = ({
   };
   
   const handleCardSelect = (card) => {
-    console.log('🎯 SearchableCardInput - handleCardSelect called');
-    console.log('  Card selected:', card);
-    console.log('  ydkCardCounts:', ydkCardCounts);
-    console.log('  onChange function:', onChange);
-    console.log('  updateCombo function:', updateCombo);
-    console.log('  comboId:', comboId);
-    console.log('  cardIndex:', cardIndex);
-
     // Check if this is a YDK card and get the actual copy count
     const cardCount = ydkCardCounts && ydkCardCounts[card.name] ? ydkCardCounts[card.name] : undefined;
-    console.log('  Card count from YDK:', cardCount);
 
     // Build the update object with card info
     const updateData = {
@@ -194,13 +159,8 @@ const SearchableCardInput = ({
       updateData.startersInDeck = cardCount;
     }
 
-    console.log('  Final updateData being sent:', updateData);
-    console.log('  About to call onChange...');
-
     // Update the card with all data at once
     onChange(updateData);
-
-    console.log('  onChange called successfully');
 
     // Close dropdown and clear search - let useEffect handle isEditing
     setSearchTerm('');
@@ -260,7 +220,7 @@ const SearchableCardInput = ({
             height: '28px',
             cursor: 'text',
             minWidth: 0,
-            ...typography.body
+            ...TYPOGRAPHY.body
           }}
           onClick={(e) => {
             e.stopPropagation();
@@ -334,7 +294,7 @@ const SearchableCardInput = ({
               {/* Show YDK cards if available, even with < 3 characters */}
               {ydkCards && ydkCards.length > 0 && (
                 <>
-                  <div className="px-3 py-2" style={{...typography.body, color: 'var(--text-secondary)'}}>
+                  <div className="px-3 py-2" style={{...TYPOGRAPHY.body, color: 'var(--text-secondary)'}}>
                     Cards you uploaded
                   </div>
                   <div className="max-h-40 overflow-y-auto">
@@ -342,11 +302,8 @@ const SearchableCardInput = ({
                       <div
                         key={`${card.id}-${index}`}
                         className="px-3 py-2 hover:opacity-80 cursor-pointer transition-opacity flex items-center justify-between"
-                        style={typography.body}
-                        onClick={() => {
-                          console.log('🖱️ Card clicked in dropdown (YDK section):', card.name);
-                          handleCardSelect(card);
-                        }}
+                        style={TYPOGRAPHY.body}
+                        onClick={() => handleCardSelect(card)}
                       >
                         <div className="flex items-center space-x-2">
                           <span>{card.name}</span>
@@ -365,7 +322,7 @@ const SearchableCardInput = ({
                     ))}
                   </div>
                   {searchTerm.length > 0 && (
-                    <div className="border-t px-3 py-2" style={{...typography.body, borderColor: 'var(--border-secondary)', color: 'var(--text-secondary)'}}>
+                    <div className="border-t px-3 py-2" style={{...TYPOGRAPHY.body, borderColor: 'var(--border-secondary)', color: 'var(--text-secondary)'}}>
                       Type at least 3 characters to search or use your custom name
                     </div>
                   )}
@@ -374,7 +331,7 @@ const SearchableCardInput = ({
               
               {/* Show default message if no YDK cards */}
               {(!ydkCards || ydkCards.length === 0) && (
-                <div className="p-3" style={{...typography.body, color: 'var(--text-secondary)'}}>
+                <div className="p-3" style={{...TYPOGRAPHY.body, color: 'var(--text-secondary)'}}>
                   Type at least 3 characters to search or use your custom name
                 </div>
               )}
@@ -394,18 +351,15 @@ const SearchableCardInput = ({
                     {/* YDK Cards Section */}
                     {ydkMatches.length > 0 && (
                       <>
-                        <div className="px-3 py-2" style={{...typography.body, color: 'var(--text-secondary)'}}>
+                        <div className="px-3 py-2" style={{...TYPOGRAPHY.body, color: 'var(--text-secondary)'}}>
                           Cards you uploaded
                         </div>
                         {ydkMatches.map((card, index) => (
                           <div
                             key={`ydk-${card.id}-${index}`}
                             className="px-3 py-2 hover:opacity-80 cursor-pointer transition-opacity flex items-center justify-between"
-                            style={typography.body}
-                            onClick={() => {
-                              console.log('🖱️ Card clicked in dropdown (3+ char YDK section):', card.name);
-                              handleCardSelect(card);
-                            }}
+                            style={TYPOGRAPHY.body}
+                            onClick={() => handleCardSelect(card)}
                           >
                             <div className="flex items-center space-x-2">
                               <span>{card.name}</span>
@@ -433,7 +387,7 @@ const SearchableCardInput = ({
                       <div
                         key={`db-${card.id}-${index}`}
                         className="px-3 py-2 hover:opacity-80 cursor-pointer transition-opacity flex items-center justify-between"
-                        style={typography.body}
+                        style={TYPOGRAPHY.body}
                         onClick={() => handleCardSelect(card)}
                       >
                         <div className="flex items-center space-x-2">
@@ -456,13 +410,13 @@ const SearchableCardInput = ({
               })()}
               
               {filteredCards.length === 50 && (
-                <div className="px-3 py-2 border-t" style={{...typography.body, borderColor: 'var(--border-secondary)', color: 'var(--text-secondary)'}}>
+                <div className="px-3 py-2 border-t" style={{...TYPOGRAPHY.body, borderColor: 'var(--border-secondary)', color: 'var(--text-secondary)'}}>
                   Type for more results
                 </div>
               )}
             </>
           ) : (
-            <div className="p-3" style={typography.body}>
+            <div className="p-3" style={TYPOGRAPHY.body}>
               <div>No matching results. Use custom name?</div>
               <Button
                 onClick={handleCustomName}

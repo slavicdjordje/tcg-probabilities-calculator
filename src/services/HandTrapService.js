@@ -95,7 +95,6 @@ class HandTrapService {
 
     // AC #11: Check known hand-traps first
     if (this.KNOWN_HAND_TRAPS.has(cardName)) {
-      console.log(`✅ Hand-trap identified (known): ${cardName}`);
       return true;
     }
 
@@ -107,7 +106,6 @@ class HandTrapService {
     // Check exclusion patterns first (AC #6 & #10)
     for (const pattern of this.EXCLUSION_PATTERNS) {
       if (pattern.test(cardDesc)) {
-        console.log(`❌ Card excluded from hand-trap (exclusion pattern): ${cardName}`);
         return false;
       }
     }
@@ -116,14 +114,12 @@ class HandTrapService {
     if (cardType.includes('monster')) {
       // AC #5: Special check for 0 ATK/0 DEF monsters with "from your hand"
       if (atk === 0 && def === 0 && /from your hand/i.test(cardDesc)) {
-        console.log(`✅ Hand-trap identified (0/0 monster with hand effect): ${cardName}`);
         return true;
       }
 
       // Check monster patterns
       for (const pattern of this.MONSTER_PATTERNS) {
         if (pattern.regex.test(cardDesc)) {
-          console.log(`✅ Hand-trap identified (monster pattern - ${pattern.description}): ${cardName}`);
           return true;
         }
       }
@@ -133,7 +129,6 @@ class HandTrapService {
     if (cardType.includes('trap')) {
       for (const pattern of this.TRAP_PATTERNS) {
         if (pattern.regex.test(cardDesc)) {
-          console.log(`✅ Hand-trap identified (trap pattern - ${pattern.description}): ${cardName}`);
           return true;
         }
       }

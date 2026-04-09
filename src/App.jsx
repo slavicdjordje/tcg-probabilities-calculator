@@ -238,7 +238,6 @@ export default function TCGCalculator() {
     handleDeckReady,
     handleUnknownDeck,
     handlePieceGroupConfirm,
-    handleSequenceCorrected,
   } = useEngineRecognition({
     cardDatabase,
     deckZones,
@@ -1035,7 +1034,7 @@ export default function TCGCalculator() {
               showMissingCards={sequenceDisplay.showMissingCards ?? false}
               logMapping={sequenceDisplay.logMapping ?? null}
               isValidatingLog={isValidatingLog}
-              onSequenceCorrected={handleSequenceCorrected}
+              onImportGameLog={() => setIsDuelingBookModalOpen(true)}
               onClose={() => setSequenceDisplay(null)}
             />
           </div>

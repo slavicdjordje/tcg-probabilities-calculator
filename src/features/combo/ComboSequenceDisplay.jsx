@@ -10,7 +10,7 @@
  *                        and optional log-validation annotations
  *   • Endboard         – field / GY / hand card lists with missing-card flags
  *   • Weakness profile – breaking categories and named counters
- *   • DuelingBook log  – upload trigger for sequence correction
+ *   • Import game log  – button to open the DuelingBook log import modal
  *
  * Props
  * -----
@@ -21,11 +21,10 @@
  *   logMapping         {object|null}   Output of LogSequenceMappingService.mapAndValidate
  *   isValidatingLog    {boolean}       True while log validation is in progress
  *   onClose            {function}      Called when user dismisses the panel
- *   onSequenceCorrected {function}     Called with parsedLog when a replay is uploaded
+ *   onImportGameLog    {function}      Called when user clicks Import game log (FDGG-47)
  */
 
-import React, { useRef, useState } from 'react';
-import LegalCheckService from '../../services/LegalCheckService.js';
+import React from 'react';
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 
@@ -327,13 +326,12 @@ const S = {
     fontFamily: 'Geist Mono, "Geist", monospace',
   },
 
-  // DuelingBook upload
+  // Import game log button (FDGG-47)
   dbSection: {
     borderTop: `1px solid ${C.border}`,
     paddingTop: '16px',
     marginTop: '4px',
   },
-  dbLabel: { fontSize: '12px', color: C.muted, marginBottom: '10px' },
   dbBtn: {
     height: '32px', padding: '0 14px',
     borderRadius: '8px', border: `1px solid ${C.dim}`,
@@ -341,8 +339,6 @@ const S = {
     fontFamily: 'Geist, sans-serif', fontSize: '12px',
     cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px',
   },
-  dbFeedback: { fontSize: '12px', color: C.green, marginTop: '8px' },
-  dbError: { fontSize: '12px', color: C.red, marginTop: '8px' },
 };
 
 // ── Zone dot legend ───────────────────────────────────────────────────────────
@@ -592,365 +588,6 @@ function WeaknessSection({ weaknesses }) {
   );
 }
 
-// ── Card name extraction ──────────────────────────────────────────────────────
-
-/**
- * Pull every quoted card name out of a DuelingBook action line.
- * DuelingBook wraps card names in double-quotes:
- *   PlayerName activated "Ash Blossom & Joyous Spring"'s effect.
- */
-function extractCardNamesFromAction(action) {
-  const names = [];
-  const re = /"([^"]+)"/g;
-  let m;
-  while ((m = re.exec(action)) !== null) names.push(m[1]);
-  return names;
-}
-
-// ── DuelingBook log upload ────────────────────────────────────────────────────
-
-/**
- * DuelingBookUpload
- *
- * State machine:
- *   idle       → user clicks Upload, file is read and parsed
- *   checking   → LegalCheckService runs on every action in parallel
- *   allLegal   → all actions passed; onSequenceCorrected is called
- *   results    → one or more actions are illegal or ambiguous
- *   rechecking → user answered clarifying questions; re-running checks on
- *                the previously-ambiguous actions only
- *
- * Acceptance rules (per FDGG-25):
- *   • All legal/unambiguous → accept, call onSequenceCorrected
- *   • Any illegal           → show violations, block, prompt resubmission
- *   • Any ambiguous         → ask clarifying questions; accept only if the
- *                             re-check resolves every action as legal
- */
-function DuelingBookUpload({ onSequenceCorrected }) {
-  const fileInputRef = useRef(null);
-  // 'idle' | 'checking' | 'allLegal' | 'results' | 'rechecking'
-  const [phase, setPhase]               = useState('idle');
-  const [fileError, setFileError]       = useState(null);
-  const [parsedLog, setParsedLog]       = useState(null);
-  const [legalResults, setLegalResults] = useState([]);
-  // { [actionIndex]: string } — user answers to clarifying questions
-  const [clarifications, setClarifications] = useState({});
-
-  async function runChecks(parsed, clarificationMap, prevResults) {
-    const isRecheck = Object.keys(clarificationMap).length > 0;
-    setPhase(isRecheck ? 'rechecking' : 'checking');
-
-    let results;
-
-    if (isRecheck && prevResults.length > 0) {
-      // Only re-check the previously-ambiguous actions that now have answers
-      results = [...prevResults];
-      await Promise.all(
-        Object.entries(clarificationMap).map(async ([idxStr, clarification]) => {
-          const i        = parseInt(idxStr, 10);
-          const action   = parsed.actions[i];
-          const cardNames = extractCardNamesFromAction(action);
-          const claim    = `${action} (Clarification: ${clarification})`;
-          try {
-            const verdict = await LegalCheckService.check({
-              cardNames: cardNames.length ? cardNames : [action],
-              claim,
-            });
-            results[i] = { action, cardNames, ...verdict };
-          } catch (err) {
-            results[i] = {
-              action, cardNames,
-              verdict:            'ambiguous',
-              explanation:        `Could not verify: ${err.message}`,
-              clarifyingQuestion: 'Could you confirm this action is correct?',
-            };
-          }
-        })
-      );
-    } else {
-      // Initial pass — check every action in parallel
-      results = await Promise.all(
-        parsed.actions.map(async (action) => {
-          const cardNames = extractCardNamesFromAction(action);
-          if (cardNames.length === 0) {
-            return { action, cardNames: [], verdict: 'legal', explanation: 'No card names detected in this action.' };
-          }
-          try {
-            const verdict = await LegalCheckService.check({ cardNames, claim: action });
-            return { action, cardNames, ...verdict };
-          } catch (err) {
-            return {
-              action, cardNames,
-              verdict:            'ambiguous',
-              explanation:        `Could not verify: ${err.message}`,
-              clarifyingQuestion: 'Could you confirm this action is correct?',
-            };
-          }
-        })
-      );
-    }
-
-    setLegalResults(results);
-
-    const hasIllegal   = results.some(r => r.verdict === 'illegal');
-    const hasAmbiguous = results.some(r => r.verdict === 'ambiguous');
-
-    if (!hasIllegal && !hasAmbiguous) {
-      setPhase('allLegal');
-      onSequenceCorrected?.(parsed);
-    } else {
-      setPhase('results');
-    }
-  }
-
-  const handleFile = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setFileError(null);
-    setLegalResults([]);
-    setClarifications({});
-    setParsedLog(null);
-
-    const validExtensions = ['.yrpx', '.yrp', '.txt', '.log'];
-    const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
-    if (!validExtensions.includes(ext)) {
-      setFileError(`Unsupported file type "${ext}". Expected .yrpx, .yrp, .txt, or .log.`);
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const raw    = ev.target.result;
-      const parsed = parseDuelingBookLog(raw, file.name);
-      if (!parsed) {
-        setFileError('Could not parse replay. Make sure you exported it as a text replay from DuelingBook.');
-        return;
-      }
-      setParsedLog(parsed);
-      runChecks(parsed, {}, []);
-    };
-    reader.onerror = () => setFileError('Failed to read file.');
-    reader.readAsText(file);
-    // Allow the same file to be re-selected after a correction
-    e.target.value = '';
-  };
-
-  const handleSubmitClarifications = () => {
-    if (parsedLog) runChecks(parsedLog, clarifications, legalResults);
-  };
-
-  const isChecking = phase === 'checking' || phase === 'rechecking';
-
-  const illegalResults = legalResults
-    .map((r, i) => ({ ...r, index: i }))
-    .filter(r => r.verdict === 'illegal');
-
-  const ambiguousResults = legalResults
-    .map((r, i) => ({ ...r, index: i }))
-    .filter(r => r.verdict === 'ambiguous');
-
-  const allClarificationsProvided = ambiguousResults.every(
-    r => clarifications[r.index]?.trim()
-  );
-
-  return (
-    <div style={S.dbSection}>
-      <div style={S.dbLabel}>
-        Upload a DuelingBook replay to refine or correct the sequence steps.
-      </div>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".yrpx,.yrp,.txt,.log"
-        style={{ display: 'none' }}
-        onChange={handleFile}
-      />
-
-      <button
-        style={{ ...S.dbBtn, opacity: isChecking ? 0.6 : 1, cursor: isChecking ? 'default' : 'pointer' }}
-        onClick={() => !isChecking && fileInputRef.current?.click()}
-        disabled={isChecking}
-      >
-        <span style={{ fontSize: '14px' }}>↑</span>
-        {isChecking ? 'Checking…' : 'Upload replay'}
-      </button>
-
-      {fileError && <div style={S.dbError}>{fileError}</div>}
-
-      {/* Checking progress */}
-      {isChecking && (
-        <div style={{ fontSize: '12px', color: C.muted, marginTop: '8px' }}>
-          {phase === 'rechecking'
-            ? 'Re-checking clarifications…'
-            : `Checking ${parsedLog?.actions.length ?? '…'} action${parsedLog?.actions.length !== 1 ? 's' : ''} against rulings…`}
-        </div>
-      )}
-
-      {/* ── All legal ────────────────────────────────────────────────────── */}
-      {phase === 'allLegal' && (
-        <div style={{ fontSize: '12px', color: C.green, marginTop: '8px' }}>
-          All {legalResults.length} action{legalResults.length !== 1 ? 's' : ''} verified as legal. Replay accepted.
-        </div>
-      )}
-
-      {/* ── Illegal actions – block + prompt resubmission ──────────────── */}
-      {phase === 'results' && illegalResults.length > 0 && (
-        <div style={{ marginTop: '12px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: C.red, marginBottom: '8px' }}>
-            {illegalResults.length} illegal action{illegalResults.length !== 1 ? 's' : ''} — replay not accepted.
-          </div>
-
-          {illegalResults.map((r) => (
-            <div key={r.index} style={{
-              backgroundColor: C.redBg,
-              border: `1px solid ${C.redBdr}`,
-              borderRadius: '6px',
-              padding: '10px',
-              marginBottom: '8px',
-              display: 'flex', flexDirection: 'column', gap: '5px',
-            }}>
-              <div style={{ fontSize: '11px', fontWeight: 600, color: C.red }}>Illegal action</div>
-              <div style={{ fontSize: '12px', color: '#fca5a5', lineHeight: '1.5', fontFamily: 'monospace', wordBreak: 'break-word' }}>
-                {r.action}
-              </div>
-
-              {r.cardNames.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                  {r.cardNames.map(cn => (
-                    <span key={cn} style={S.chokeCatPill}>{cn}</span>
-                  ))}
-                </div>
-              )}
-
-              <div style={{ fontSize: '11px', color: '#fca5a5', lineHeight: '1.4' }}>
-                {r.explanation}
-              </div>
-
-              {r.violatedRuling && (
-                <div style={{
-                  fontSize: '11px', color: '#fca5a5', lineHeight: '1.5',
-                  backgroundColor: 'rgba(239,68,68,0.05)',
-                  border: `1px solid rgba(239,68,68,0.18)`,
-                  borderRadius: '4px', padding: '6px 8px',
-                }}>
-                  <strong style={{ color: C.red }}>Violated ruling:</strong> {r.violatedRuling}
-                </div>
-              )}
-            </div>
-          ))}
-
-          <div style={{ fontSize: '11px', color: C.muted, marginTop: '2px' }}>
-            Correct the invalid actions and upload a new replay to continue.
-          </div>
-        </div>
-      )}
-
-      {/* ── Ambiguous actions – clarification form ─────────────────────── */}
-      {phase === 'results' && illegalResults.length === 0 && ambiguousResults.length > 0 && (
-        <div style={{ marginTop: '12px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: C.amber, marginBottom: '8px' }}>
-            {ambiguousResults.length} action{ambiguousResults.length !== 1 ? 's need' : ' needs'} clarification before the replay can be accepted.
-          </div>
-
-          {ambiguousResults.map((r) => (
-            <div key={r.index} style={{
-              backgroundColor: C.amberBg,
-              border: `1px solid ${C.amberBdr}`,
-              borderRadius: '6px',
-              padding: '10px',
-              marginBottom: '8px',
-              display: 'flex', flexDirection: 'column', gap: '5px',
-            }}>
-              <div style={{ fontSize: '11px', fontWeight: 600, color: C.amber }}>Ambiguous action</div>
-              <div style={{ fontSize: '12px', color: '#fcd34d', lineHeight: '1.5', fontFamily: 'monospace', wordBreak: 'break-word' }}>
-                {r.action}
-              </div>
-
-              {r.cardNames.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                  {r.cardNames.map(cn => (
-                    <span key={cn} style={S.substituteChip}>{cn}</span>
-                  ))}
-                </div>
-              )}
-
-              <div style={{ fontSize: '11px', color: C.amber }}>
-                {r.clarifyingQuestion ?? r.explanation}
-              </div>
-
-              <textarea
-                value={clarifications[r.index] ?? ''}
-                onChange={ev => setClarifications(prev => ({ ...prev, [r.index]: ev.target.value }))}
-                placeholder="Type your clarification here…"
-                rows={2}
-                style={{
-                  width: '100%', boxSizing: 'border-box',
-                  backgroundColor: C.surface2,
-                  border: `1px solid ${C.amberBdr}`,
-                  borderRadius: '6px',
-                  color: C.text,
-                  fontSize: '12px', fontFamily: 'Geist, sans-serif',
-                  padding: '6px 8px',
-                  resize: 'vertical', outline: 'none',
-                }}
-              />
-            </div>
-          ))}
-
-          <button
-            style={{
-              ...S.dbBtn,
-              backgroundColor: C.amberBg,
-              borderColor: C.amberBdr,
-              color: C.amber,
-              marginTop: '4px',
-              opacity: allClarificationsProvided ? 1 : 0.5,
-              cursor: allClarificationsProvided ? 'pointer' : 'default',
-            }}
-            onClick={handleSubmitClarifications}
-            disabled={!allClarificationsProvided}
-          >
-            Submit clarifications
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * Minimal DuelingBook log parser.
- * Extracts ordered play action lines from a plain-text replay export.
- *
- * DuelingBook text replays look like:
- *   Turn 1 (PlayerName):
- *   PlayerName Normal Summoned "Card Name".
- *   PlayerName activated "Card Name"'s effect.
- *   …
- *
- * Returns { actions: string[] } or null if the text is empty / unrecognisable.
- */
-function parseDuelingBookLog(raw, filename) {
-  if (!raw || typeof raw !== 'string') return null;
-
-  const lines = raw
-    .split(/\r?\n/)
-    .map(l => l.trim())
-    .filter(l => l.length > 0);
-
-  if (lines.length === 0) return null;
-
-  // Heuristic: accept if any line contains a known DB log keyword
-  const logKeywords = ['Summoned', 'activated', 'added', 'sent', 'banished', 'attached', 'detached', 'Turn'];
-  const looksLikeLog = lines.some(l => logKeywords.some(kw => l.includes(kw)));
-  if (!looksLikeLog) return null;
-
-  // Filter to action lines (non-turn-header, non-empty)
-  const actions = lines.filter(l => !/^Turn\s+\d+/.test(l) && l.length > 0);
-
-  return { filename, raw, actions };
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ComboSequenceDisplay({
@@ -960,7 +597,7 @@ export default function ComboSequenceDisplay({
   logMapping,
   isValidatingLog,
   onClose,
-  onSequenceCorrected,
+  onImportGameLog,
 }) {
   if (!sequence || !delta) return null;
 
@@ -1069,8 +706,13 @@ export default function ComboSequenceDisplay({
           </div>
         )}
 
-        {/* DuelingBook correction */}
-        <DuelingBookUpload onSequenceCorrected={onSequenceCorrected} />
+        {/* Import game log (FDGG-47) */}
+        <div style={S.dbSection}>
+          <button style={S.dbBtn} onClick={onImportGameLog}>
+            <span style={{ fontSize: '14px' }}>⬇</span>
+            Import game log
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -67,7 +67,6 @@ const DecklistImage = ({
 
   if (hasLiveDeckData) {
     // Use live deck data from Deck Builder (synced state)
-    console.log('🔄 DecklistImage: Using live deck data from Deck Builder');
     deckSections = {
       main: deckZones.main.map(card => ({
         name: card.name,
@@ -90,7 +89,6 @@ const DecklistImage = ({
     };
   } else {
     // Fallback: Parse YDK file content (for initial load)
-    console.log('🔄 DecklistImage: Falling back to YDK file parsing');
     deckSections = { main: [], extra: [], side: [] };
 
   if (uploadedYdkFile && uploadedYdkFile.content) {
@@ -180,10 +178,6 @@ const DecklistImage = ({
 
   // AC #1: Handle card click
   const handleCardClick = (card, event) => {
-    console.log('🖱️ DecklistImage - handleCardClick called');
-    console.log('  Full card object:', card);
-    console.log('  card.name:', card.name);
-    console.log('  card.id:', card.id);
     const rect = event.currentTarget.getBoundingClientRect();
     setSelectedCard(card);
     setOverlayPosition({
@@ -237,22 +231,11 @@ const DecklistImage = ({
   const updateCardComboAssignment = (comboId, minInHand, maxInHand, isAssigned, logicOperator = 'AND') => {
     if (!selectedCard) return;
 
-    console.log('🎯 DecklistImage - updateCardComboAssignment called FOR REAL');
-    console.log('  selectedCard:', selectedCard);
-    console.log('  selectedCard.name:', selectedCard.name);
-    console.log('  ydkCardCounts:', ydkCardCounts);
-    console.log('  ydkCardCounts keys:', Object.keys(ydkCardCounts));
-    console.log('  comboId:', comboId);
-    console.log('  isAssigned:', isAssigned);
-
     setCombos(prevCombos => {
       return prevCombos.map(combo => {
         if (combo.id !== comboId) return combo;
 
         const cardCount = ydkCardCounts[selectedCard.name] || 1;
-        console.log('  🔍 Looking up:', selectedCard.name);
-        console.log('  📊 Found cardCount:', cardCount);
-        console.log('  ⚠️ If cardCount is 1, check if key exists in ydkCardCounts:', selectedCard.name in ydkCardCounts);
         const validMin = Math.max(0, Math.min(minInHand, cardCount));
         const validMax = Math.max(validMin, Math.min(maxInHand, cardCount));
         
@@ -272,27 +255,17 @@ const DecklistImage = ({
             logicOperator: combo.cards.length > 0 ? logicOperator : 'AND' // First card doesn't need logic
           };
 
-          console.log('  📦 cardData being created:', cardData);
-          console.log('  Current updatedCards:', updatedCards);
-          console.log('  existingCardIndex:', existingCardIndex);
-
           if (existingCardIndex >= 0) {
-            console.log('  ✏️ Updating existing card at index', existingCardIndex);
             updatedCards[existingCardIndex] = cardData;
           } else {
             // Replace empty card or add new one
             const emptyIndex = updatedCards.findIndex(card => !card.starterCard.trim());
-            console.log('  emptyIndex:', emptyIndex);
             if (emptyIndex >= 0) {
-              console.log('  📝 Replacing empty card at index', emptyIndex);
               updatedCards[emptyIndex] = cardData;
             } else {
-              console.log('  ➕ Adding new card to end');
               updatedCards.push(cardData);
             }
           }
-
-          console.log('  ✅ Final updatedCards:', updatedCards);
         } else {
           if (existingCardIndex >= 0) {
             updatedCards.splice(existingCardIndex, 1);
@@ -557,8 +530,6 @@ const DecklistImage = ({
                       type="checkbox"
                       checked={isAssigned}
                       onChange={(e) => {
-                        console.log('☑️ Checkbox clicked for combo:', combo.id, 'checked:', e.target.checked);
-                        console.log('  minValue:', minValue, 'maxValue:', maxValue);
                         updateCardComboAssignment(combo.id, minValue, maxValue, e.target.checked, comboLogicSelections[combo.id] || 'AND');
                       }}
                       style={{ marginRight: '8px' }}

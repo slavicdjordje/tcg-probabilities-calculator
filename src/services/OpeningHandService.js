@@ -5,9 +5,7 @@
 
 const OpeningHandService = {
   generateHand: (combos, deckSize, handSize) => {
-    console.log('🔄 OpeningHandService.generateHand called with:', { combos: combos?.length, deckSize, handSize });
     if (!combos || combos.length === 0 || handSize <= 0 || deckSize <= 0) {
-      console.log('❌ Invalid parameters, returning blank cards');
       return Array(handSize).fill(null).map(() => ({ type: 'blank', cardName: null, isCustom: false }));
     }
 
@@ -17,13 +15,9 @@ const OpeningHandService = {
     let cardIdCounter = 0;
 
     // Process all combo cards and create unified card mapping
-    console.log('🔍 Processing combos:', combos);
     combos.forEach((combo, comboIndex) => {
-      console.log(`🔍 Processing combo ${comboIndex}:`, combo);
       combo.cards.forEach((card, cardIndex) => {
-        console.log(`🔍 Processing card ${comboIndex}-${cardIndex}:`, card);
         if (!card.starterCard || card.starterCard.trim() === '') {
-          console.log('⚠️ Skipping empty card name');
           return;
         }
 
@@ -45,9 +39,7 @@ const OpeningHandService = {
     });
 
     // Build deck according to hypergeometric distribution principles
-    console.log('🚀 Final cardMapping:', Array.from(cardMapping.entries()));
-    cardMapping.forEach((cardInfo, cardKey) => {
-      console.log(`🔨 Building deck with card "${cardKey}":`, cardInfo);
+    cardMapping.forEach((cardInfo) => {
       for (let i = 0; i < cardInfo.totalInDeck; i++) {
         deck.push({
           id: cardInfo.id,
@@ -57,7 +49,6 @@ const OpeningHandService = {
         });
       }
     });
-    console.log('🎴 Deck after adding combo cards (length):', deck.length);
 
     // Fill remaining deck slots with blank cards (representing non-combo cards)
     while (deck.length < deckSize) {
@@ -74,29 +65,22 @@ const OpeningHandService = {
     // Draw opening hand - this represents the hypergeometric distribution
     // in practice (drawing without replacement from a finite population)
     const hand = [];
-    console.log('🎯 Drawing opening hand from deck. First 10 cards:', deck.slice(0, 10));
     for (let i = 0; i < handSize; i++) {
-      console.log(`🎴 Drawing card ${i}: deck[${i}] =`, deck[i]);
       if (i < deck.length && deck[i]) {
-        const cardData = {
+        hand.push({
           type: 'card',
           cardName: deck[i].name,
           cardId: deck[i].cardId,
           isCustom: deck[i].isCustom
-        };
-        console.log(`✅ Adding real card to hand:`, cardData);
-        hand.push(cardData);
+        });
       } else {
-        const blankCard = {
+        hand.push({
           type: 'blank',
           cardName: null,
           isCustom: false
-        };
-        console.log(`⚪ Adding blank card to hand:`, blankCard);
-        hand.push(blankCard);
+        });
       }
     }
-    console.log('🏁 Final hand before return:', hand);
 
     return hand;
   },
@@ -105,13 +89,11 @@ const OpeningHandService = {
   generateProbabilisticHand: (combos, deckSize, handSize) => {
     // Use Monte Carlo approach to generate hands that reflect true probability
     // This will show both successful hands AND brick hands based on real odds
-    console.log('🎰 generateProbabilisticHand starting...');
     const numAttempts = 10; // Try multiple hands and pick one randomly
     const possibleHands = [];
 
     for (let attempt = 0; attempt < numAttempts; attempt++) {
       const hand = OpeningHandService.generateHand(combos, deckSize, handSize);
-      console.log(`🎰 Attempt ${attempt + 1}:`, hand.filter(card => card.type === 'card').length, 'real cards');
       possibleHands.push(hand);
     }
 
@@ -120,20 +102,14 @@ const OpeningHandService = {
       hand.some(card => card.type === 'card')
     );
 
-    const finalHand = handsWithCards.length > 0
+    return handsWithCards.length > 0
       ? handsWithCards[Math.floor(Math.random() * handsWithCards.length)]
       : possibleHands[Math.floor(Math.random() * possibleHands.length)];
-
-    console.log('🎰 Final selected hand:', finalHand.filter(card => card.type === 'card').length, 'real cards');
-    return finalHand;
   },
 
   // Generate opening hand from YDK cards
   generateHandFromYdkCards: (ydkCards, ydkCardCounts, handSize) => {
-    console.log('🎯 generateHandFromYdkCards starting with:', { ydkCards: ydkCards?.length, handSize });
-
     if (!ydkCards || ydkCards.length === 0 || !ydkCardCounts || Object.keys(ydkCardCounts).length === 0) {
-      console.log('❌ No YDK cards available, returning blank cards');
       return Array(handSize).fill(null).map(() => ({ type: 'blank', cardName: null, isCustom: false }));
     }
 
@@ -153,11 +129,7 @@ const OpeningHandService = {
       }
     });
 
-    console.log('🃏 Built deck with', deck.length, 'cards');
-
-    // Handle empty deck case
     if (deck.length === 0) {
-      console.log('❌ Empty deck, returning blank cards');
       return Array(handSize).fill(null).map(() => ({ type: 'blank', cardName: null, isCustom: false }));
     }
 
@@ -174,7 +146,6 @@ const OpeningHandService = {
       }
     }
 
-    console.log('🎯 Generated YDK hand:', hand);
     return hand;
   }
 };

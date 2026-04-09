@@ -11,9 +11,10 @@ export const DEFAULT_DECK_SIZE = 40;
 export const DEFAULT_HAND_SIZE = 5;
 
 export const TYPOGRAPHY = {
-  h1: { fontSize: 'var(--font-h1-size)', lineHeight: 'var(--font-h1-line-height)' },
-  h2: { fontSize: 'var(--font-h2-size)', lineHeight: 'var(--font-h2-line-height)' },
-  h3: { fontSize: 'var(--font-h3-size)', lineHeight: 'var(--font-h3-line-height)' },
-  body: { fontSize: 'var(--font-body-size)', lineHeight: 'var(--font-body-line-height)' },
-  small: { fontSize: 'var(--font-small-size)', lineHeight: 'var(--font-small-line-height)' }
+  h1: { fontSize: 'var(--font-h1-size)', lineHeight: 'var(--font-h1-line-height)', fontFamily: 'Geist, sans-serif' },
+  h2: { fontSize: 'var(--font-h2-size)', lineHeight: 'var(--font-h2-line-height)', fontFamily: 'Geist, sans-serif' },
+  h3: { fontSize: 'var(--font-h3-size)', lineHeight: 'var(--font-h3-line-height)', fontFamily: 'Geist, sans-serif' },
+  body: { fontSize: 'var(--font-body-size)', lineHeight: 'var(--font-body-line-height)', fontFamily: 'Geist, sans-serif' },
+  small: { fontSize: 'var(--font-small-size)', lineHeight: 'var(--font-small-line-height)', fontFamily: 'Geist, sans-serif' },
+  caption: { fontSize: 'var(--font-caption-size)', lineHeight: 'var(--font-caption-line-height)', fontFamily: 'Geist, sans-serif' }
 };

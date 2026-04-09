@@ -81,11 +81,9 @@ class YdkParser {
           if (cardData.isExtraDeck === true && currentSection === 'main') {
             // Extra deck card found in main deck section - move to extra deck
             correctZone = 'extra';
-            console.log(`🔄 Auto-correcting: Moving ${cardData.name} from main to extra deck`);
           } else if (cardData.isExtraDeck === false && currentSection === 'extra') {
             // Main deck card found in extra deck section - move to main deck
             correctZone = 'main';
-            console.log(`🔄 Auto-correcting: Moving ${cardData.name} from extra to main deck`);
           }
 
           // Create card object for deck builder

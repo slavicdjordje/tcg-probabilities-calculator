@@ -11,17 +11,16 @@ import useYdkImport from './hooks/useYdkImport';
 import useToast from './hooks/useToast';
 import useOpeningHand from './hooks/useOpeningHand';
 import useErrors from './hooks/useErrors';
+import useComboHandlers from './hooks/useComboHandlers';
 
 // Service imports
 import ProbabilityService from './services/ProbabilityService';
 import URLService from './services/URLService';
 import CardDatabaseService from './services/CardDatabaseService';
 import TitleGeneratorService from './services/TitleGeneratorService';
-import HandTrapService from './services/HandTrapService';
 import YdkParser from './services/YdkParser';
 
 // Component imports
-import ComboBuilder from './features/calculator/ComboBuilder';
 import ResultsDisplay from './features/calculator/ResultsDisplay';
 import DeckConfigInputs from './features/calculator/DeckConfigInputs';
 import ComboForm from './features/combo/ComboForm';
@@ -41,10 +40,8 @@ import { createCombo } from './utils/comboFactory';
 import OpeningHandService from './services/OpeningHandService';
 
 // Additional component imports
-import CardImage from './components/CardImage';
 import SearchableCardInput from './features/shared/SearchableCardInput';
 import { Toast } from './components/ui';
-import DeckStatistics from './features/deck-builder/DeckStatistics';
 
 export default function TCGCalculator() {
   // Custom Hooks
@@ -94,8 +91,6 @@ export default function TCGCalculator() {
     handSize: DEFAULT_HAND_SIZE,
     combos: []
   });
-  const [editingComboId, setEditingComboId] = useState(null);
-  const [tempComboName, setTempComboName] = useState('');
   const [isRestoringFromURL, setIsRestoringFromURL] = useState(false);
   const [generatedTitle, setGeneratedTitle] = useState('');
   const [staticCardDatabase, setStaticCardDatabase] = useState({});
@@ -103,14 +98,32 @@ export default function TCGCalculator() {
   const refreshDebounceRef = useRef(null);
   const calculationDashboardRef = useRef(null);
 
+  // Combo handlers hook
+  const {
+    editingComboId,
+    tempComboName,
+    addCombo,
+    removeCombo,
+    addCard,
+    removeSecondCard,
+    removeCard,
+    canAddCard,
+    getHighestMinInHandSum,
+    updateCombo,
+    updateComboProperty,
+    validateAndUpdateCombo,
+    startEditingComboName,
+    handleComboNameChange,
+    saveComboName,
+    handleComboNameKeyDown,
+  } = useComboHandlers({ combos, setCombos, handSize, errors, setErrors });
+
   // Sync deckZones when initialDeckZones changes (from YDK upload)
   useEffect(() => {
     if (initialDeckZones) {
-      console.log('🔄 App: Syncing deckZones with initialDeckZones:', initialDeckZones);
       setDeckZones(initialDeckZones);
     } else if (initialDeckZones === null) {
       // Clear deck zones when YDK is removed
-      console.log('🔄 App: Clearing deckZones');
       setDeckZones({
         main: [],
         extra: [],
@@ -150,124 +163,45 @@ export default function TCGCalculator() {
     requestAnimationFrame(step);
   };
 
-  // Engine recognition callback: auto-calculate and scroll after engines are detected
-  const handleEnginesRecognized = (recognizedCombos, cardCounts, uniqueCards, newDeckSize) => {
+  const showToast = (message) => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(''), 2000); // Hide after 2 seconds
+  };
+
+  // Shared auto-calculate logic (used as fallback and after confirmation)
+  const runAutoCalculate = (combosToCalc, cardCounts, uniqueCards, newDeckSize) => {
     setTimeout(() => {
       const calculatedResults = ProbabilityService.calculateMultipleCombos(
-        recognizedCombos, newDeckSize, handSize, uniqueCards, cardCounts
+        combosToCalc, newDeckSize, handSize, uniqueCards, cardCounts
       );
       setResults(calculatedResults);
       setDashboardValues({
         deckSize: newDeckSize,
         handSize,
-        combos: recognizedCombos.map(c => ({ ...c })),
+        combos: combosToCalc.map(c => ({ ...c })),
       });
       const title = TitleGeneratorService.generateFunTitle(
-        recognizedCombos, newDeckSize, calculatedResults.individual
+        combosToCalc, newDeckSize, calculatedResults.individual
       );
       setGeneratedTitle(title);
       setTimeout(() => scrollToCalculationDashboard(), 800);
     }, 100);
   };
 
-//   // Top Decks data
-//   const topDecks = [
-//     {
-//       title: "Gem-Knight going 2nd deck - 3rd/4th Place in NAWCQ 2025",
-//       description: "Consistency is through the roof when you run a deck list stacked with starters/board breakers/Charmies",
-//       link: "https://www.firstdrawgg.online/#calc=eyJkIjo0MSwiaCI6NiwiYyI6W3siaSI6MSwibiI6IkNvbWJvIDEiLCJjYXJkcyI6W3sicyI6IkFueSBDaGFybXkiLCJjSWQiOm51bGwsImlDIjp0cnVlLCJkZWNrIjo4LCJtaW4iOjEsIm1heCI6M31dfSx7ImkiOjIsIm4iOiJDb21ibyAyIiwiY2FyZHMiOlt7InMiOiJHZW0tS25pZ2h0IFF1YXJ0eiIsImNJZCI6MzU2MjI3MzksImlDIjpmYWxzZSwiZGVjayI6MywibWluIjoxLCJtYXgiOjF9XX0seyJpIjozLCJuIjoiQ29tYm8gMyIsImNhcmRzIjpbeyJzIjoiR2VtLUtuaWdodCBOZXB5cmltIiwiY0lkIjo1MTgzMTU2MCwiaUMiOmZhbHNlLCJkZWNrIjozLCJtaW4iOjEsIm1heCI6MX1dfSx7ImkiOjQsIm4iOiJDb21ibyA0IiwiY2FyZHMiOlt7InMiOiJCb2FyZCBCcmVha2VyIiwiY0lkIjpudWxsLCJpQyI6dHJ1ZSwiZGVjayI6OSwibWluIjoxLCJtYXgiOjF9XX1dfQ=="
-//     },
-//     {
-//       title: "My own Unchained for Locals - 26th Oct 2025",
-//       description: "Unchained with Fiendsmith as 1-card starters",
-//       link: "https://www.firstdrawgg.online/#calc=eyJkIjo0MiwiaCI6NSwiYyI6W3siaSI6MSwibiI6IkNvbWJvIDEiLCJjYXJkcyI6W3sicyI6IkZpZW5kc21pdGggRW5ncmF2ZXIiLCJjSWQiOiI2MDc2NDYwOSIsImlDIjpmYWxzZSwiZGVjayI6MywibWluIjoxLCJtYXgiOjMsImxvZ2ljIjoiQU5EIn1dfSx7ImkiOjIsIm4iOiJDb21ibyAyIiwiY2FyZHMiOlt7InMiOiJMYWNyaW1hIHRoZSBDcmltc29uIFRlYXJzIiwiY0lkIjoiMjg4MDMxNjYiLCJpQyI6ZmFsc2UsImRlY2siOjMsIm1pbiI6MSwibWF4IjozLCJsb2dpYyI6IkFORCJ9XX0seyJpIjozLCJuIjoiQ29tYm8gMyIsImNhcmRzIjpbeyJzIjoiRmllbmRzbWl0aCdzIFNhbmN0IiwiY0lkIjoiMzU1NTI5ODUiLCJpQyI6ZmFsc2UsImRlY2siOjEsIm1pbiI6MSwibWF4IjoxLCJsb2dpYyI6IkFORCJ9XX0seyJpIjo0LCJuIjoiQ29tYm8gNCIsImNhcmRzIjpbeyJzIjoiRmllbmRzbWl0aCdzIFRyYWN0IiwiY0lkIjoiOTg1NjcyMzciLCJpQyI6ZmFsc2UsImRlY2siOjIsIm1pbiI6MSwibWF4IjoyLCJsb2dpYyI6IkFORCJ9XX0seyJpIjo1LCJuIjoiQ29tYm8gNSIsImNhcmRzIjpbeyJzIjoiRmFibGVkIEx1cnJpZSIsImNJZCI6Ijk3NjUxNDk4IiwiaUMiOmZhbHNlLCJkZWNrIjoxLCJtaW4iOjEsIm1heCI6MSwibG9naWMiOiJBTkQifV19LHsiaSI6NiwibiI6IkNvbWJvIDYiLCJjYXJkcyI6W3sicyI6IkFib21pbmF0aW9uJ3MgUHJpc29uIiwiY0lkIjoiMjc0MTI1NDIiLCJpQyI6ZmFsc2UsImRlY2siOjMsIm1pbiI6MSwibWF4IjozLCJsb2dpYyI6IkFORCJ9LHsicyI6IlVuY2hhaW5lZCBTb3VsIG9mIFNoYXJ2YXJhIiwiY0lkIjoiNDExNjU4MzEiLCJpQyI6ZmFsc2UsImRlY2siOjIsIm1pbiI6MSwibWF4IjoyLCJsb2dpYyI6IkFORCJ9XX0seyJpIjo3LCJuIjoiQ29tYm8gNyIsImNhcmRzIjpbeyJzIjoiQWJvbWluYXRpb24ncyBQcmlzb24iLCJjSWQiOiIyNzQxMjU0MiIsImlDIjpmYWxzZSwiZGVjayI6MywibWluIjoxLCJtYXgiOjMsImxvZ2ljIjoiQU5EIn0seyJzIjoiQWJvbWluYWJsZSBDaGFtYmVyIG9mIHRoZSBVbmNoYWluZWQiLCJjSWQiOiI4MDgwMTc0MyIsImlDIjpmYWxzZSwiZGVjayI6MiwibWluIjoxLCJtYXgiOjIsImxvZ2ljIjoiQU5EIn1dfSx7ImkiOjgsIm4iOiJDb21ibyA4IiwiY2FyZHMiOlt7InMiOiJBYm9taW5hdGlvbidzIFByaXNvbiIsImNJZCI6IjI3NDEyNTQyIiwiaUMiOmZhbHNlLCJkZWNrIjozLCJtaW4iOjEsIm1heCI6MywibG9naWMiOiJBTkQifSx7InMiOiJFc2NhcGUgb2YgdGhlIFVuY2hhaW5lZCIsImNJZCI6IjUzNDE3Njk1IiwiaUMiOmZhbHNlLCJkZWNrIjoxLCJtaW4iOjEsIm1heCI6MSwibG9naWMiOiJBTkQifV19LHsiaSI6OSwibiI6IkNvbWJvIDkiLCJjYXJkcyI6W3sicyI6IkFib21pbmF0aW9uJ3MgUHJpc29uIiwiY0lkIjoiMjc0MTI1NDIiLCJpQyI6ZmFsc2UsImRlY2siOjMsIm1pbiI6MSwibWF4IjozLCJsb2dpYyI6IkFORCJ9LHsicyI6IlVuY2hhaW5lZCBUd2lucyAtIEFydWhhIiwiY0lkIjoiMjYyMzY1NjAiLCJpQyI6ZmFsc2UsImRlY2siOjEsIm1pbiI6MSwibWF4IjoxLCJsb2dpYyI6IkFORCJ9XX0seyJpIjoxMCwibiI6IkNvbWJvIDEwIiwiY2FyZHMiOlt7InMiOiJVbmNoYWluZWQgU291bCBvZiBTaGFydmFyYSIsImNJZCI6IjQxMTY1ODMxIiwiaUMiOmZhbHNlLCJkZWNrIjoyLCJtaW4iOjEsIm1heCI6MiwibG9naWMiOiJBTkQifSx7InMiOiJBYm9taW5hYmxlIENoYW1iZXIgb2YgdGhlIFVuY2hhaW5lZCIsImNJZCI6IjgwODAxNzQzIiwiaUMiOmZhbHNlLCJkZWNrIjoyLCJtaW4iOjEsIm1heCI6MiwibG9naWMiOiJBTkQifV19LHsiaSI6MTEsIm4iOiJDb21ibyAxMSIsImNhcmRzIjpbeyJzIjoiVW5jaGFpbmVkIFNvdWwgb2YgU2hhcnZhcmEiLCJjSWQiOiI0MTE2NTgzMSIsImlDIjpmYWxzZSwiZGVjayI6MiwibWluIjoxLCJtYXgiOjIsImxvZ2ljIjoiQU5EIn0seyJzIjoiRXNjYXBlIG9mIHRoZSBVbmNoYWluZWQiLCJjSWQiOiI1MzQxNzY5NSIsImlDIjpmYWxzZSwiZGVjayI6MSwibWluIjoxLCJtYXgiOjEsImxvZ2ljIjoiQU5EIn1dfSx7ImkiOjEyLCJuIjoiQ29tYm8gMTIiLCJjYXJkcyI6W3sicyI6IlVuY2hhaW5lZCBTb3VsIG9mIFNoYXJ2YXJhIiwiY0lkIjoiNDExNjU4MzEiLCJpQyI6ZmFsc2UsImRlY2siOjIsIm1pbiI6MSwibWF4IjoyLCJsb2dpYyI6IkFORCJ9LHsicyI6IlVuY2hhaW5lZCBUd2lucyAtIEFydWhhIiwiY0lkIjoiMjYyMzY1NjAiLCJpQyI6ZmFsc2UsImRlY2siOjEsIm1pbiI6MSwibWF4IjoxLCJsb2dpYyI6IkFORCJ9XX0seyJpIjoxMywibiI6IkNvbWJvIDEzIiwiY2FyZHMiOlt7InMiOiJVbmNoYWluZWQgVHdpbnMgLSBBcnVoYSIsImNJZCI6IjI2MjM2NTYwIiwiaUMiOmZhbHNlLCJkZWNrIjoxLCJtaW4iOjEsIm1heCI6MSwibG9naWMiOiJBTkQifSx7InMiOiJBYm9taW5hYmxlIENoYW1iZXIgb2YgdGhlIFVuY2hhaW5lZCIsImNJZCI6IjgwODAxNzQzIiwiaUMiOmZhbHNlLCJkZWNrIjoyLCJtaW4iOjEsIm1heCI6MiwibG9naWMiOiJBTkQifV19LHsiaSI6MTQsIm4iOiJDb21ibyAxNCIsImNhcmRzIjpbeyJzIjoiVW5jaGFpbmVkIFR3aW5zIC0gQXJ1aGEiLCJjSWQiOiIyNjIzNjU2MCIsImlDIjpmYWxzZSwiZGVjayI6MSwibWluIjoxLCJtYXgiOjEsImxvZ2ljIjoiQU5EIn0seyJzIjoiRXNjYXBlIG9mIHRoZSBVbmNoYWluZWQiLCJjSWQiOiI1MzQxNzY5NSIsImlDIjpmYWxzZSwiZGVjayI6MSwibWluIjoxLCJtYXgiOjEsImxvZ2ljIjoiQU5EIn1dfV0sInRlc3RIYW5kIjp0cnVlfQ=="
-//     },
-//     {
-//       title: "Unchained for Locals - 23rd Nov 2025",
-//       description: "Unchained with Fiendsmith as 1-card starters",
-//       link: "https://www.firstdrawgg.online/#calc=eyJkIjo0MiwiaCI6NSwiYyI6W3siaSI6MSwibiI6IkNvbWJvIDEiLCJjYXJkcyI6W3sicyI6IkZpZW5kc21pdGggRW5ncmF2ZXIiLCJjSWQiOiI2MDc2NDYwOSIsImlDIjpmYWxzZSwiZGVjayI6MywibWluIjoxLCJtYXgiOjMsImxvZ2ljIjoiQU5EIn1dfSx7ImkiOjIsIm4iOiJDb21ibyAyIiwiY2FyZHMiOlt7InMiOiJMYWNyaW1hIHRoZSBDcmltc29uIFRlYXJzIiwiY0lkIjoiMjg4MDMxNjYiLCJpQyI6ZmFsc2UsImRlY2siOjMsIm1pbiI6MSwibWF4IjozLCJsb2dpYyI6IkFORCJ9XX0seyJpIjozLCJuIjoiQ29tYm8gMyIsImNhcmRzIjpbeyJzIjoiVW5jaGFpbmVkIFNvdWwgb2YgU2hhcnZhcmEiLCJjSWQiOiI0MTE2NTgzMSIsImlDIjpmYWxzZSwiZGVjayI6MiwibWluIjoxLCJtYXgiOjIsImxvZ2ljIjoiQU5EIn0seyJzIjoiQWJvbWluYWJsZSBDaGFtYmVyIG9mIHRoZSBVbmNoYWluZWQiLCJjSWQiOiI4MDgwMTc0MyIsImlDIjpmYWxzZSwiZGVjayI6MiwibWluIjoxLCJtYXgiOjIsImxvZ2ljIjoiQU5EIn1dfSx7ImkiOjQsIm4iOiJDb21ibyA0IiwiY2FyZHMiOlt7InMiOiJVbmNoYWluZWQgU291bCBvZiBTaGFydmFyYSIsImNJZCI6IjQxMTY1ODMxIiwiaUMiOmZhbHNlLCJkZWNrIjoyLCJtaW4iOjEsIm1heCI6MiwibG9naWMiOiJBTkQifSx7InMiOiJFc2NhcGUgb2YgdGhlIFVuY2hhaW5lZCIsImNJZCI6IjUzNDE3Njk1IiwiaUMiOmZhbHNlLCJkZWNrIjoxLCJtaW4iOjEsIm1heCI6MSwibG9naWMiOiJBTkQifV19LHsiaSI6NSwibiI6IkNvbWJvIDUiLCJjYXJkcyI6W3sicyI6IkFib21pbmF0aW9uJ3MgUHJpc29uIiwiY0lkIjoiMjc0MTI1NDIiLCJpQyI6ZmFsc2UsImRlY2siOjMsIm1pbiI6MSwibWF4IjozLCJsb2dpYyI6IkFORCJ9LHsicyI6IlVuY2hhaW5lZCBTb3VsIG9mIFNoYXJ2YXJhIiwiY0lkIjoiNDExNjU4MzEiLCJpQyI6ZmFsc2UsImRlY2siOjIsIm1pbiI6MSwibWF4IjoyLCJsb2dpYyI6IkFORCJ9XX0seyJpIjo2LCJuIjoiQ29tYm8gNiIsImNhcmRzIjpbeyJzIjoiQWJvbWluYXRpb24ncyBQcmlzb24iLCJjSWQiOiIyNzQxMjU0MiIsImlDIjpmYWxzZSwiZGVjayI6MywibWluIjoxLCJtYXgiOjMsImxvZ2ljIjoiQU5EIn0seyJzIjoiVW5jaGFpbmVkIFR3aW5zIC0gQXJ1aGEiLCJjSWQiOiIyNjIzNjU2MCIsImlDIjpmYWxzZSwiZGVjayI6MSwibWluIjoxLCJtYXgiOjEsImxvZ2ljIjoiQU5EIn1dfSx7ImkiOjcsIm4iOiJDb21ibyA3IiwiY2FyZHMiOlt7InMiOiJBYm9taW5hdGlvbidzIFByaXNvbiIsImNJZCI6IjI3NDEyNTQyIiwiaUMiOmZhbHNlLCJkZWNrIjozLCJtaW4iOjEsIm1heCI6MywibG9naWMiOiJBTkQifSx7InMiOiJBYm9taW5hYmxlIENoYW1iZXIgb2YgdGhlIFVuY2hhaW5lZCIsImNJZCI6IjgwODAxNzQzIiwiaUMiOmZhbHNlLCJkZWNrIjoyLCJtaW4iOjEsIm1heCI6MiwibG9naWMiOiJBTkQifV19LHsiaSI6OCwibiI6IkNvbWJvIDgiLCJjYXJkcyI6W3sicyI6IkFib21pbmF0aW9uJ3MgUHJpc29uIiwiY0lkIjoiMjc0MTI1NDIiLCJpQyI6ZmFsc2UsImRlY2siOjMsIm1pbiI6MSwibWF4IjozLCJsb2dpYyI6IkFORCJ9LHsicyI6IkVzY2FwZSBvZiB0aGUgVW5jaGFpbmVkIiwiY0lkIjoiNTM0MTc2OTUiLCJpQyI6ZmFsc2UsImRlY2siOjEsIm1pbiI6MSwibWF4IjoxLCJsb2dpYyI6IkFORCJ9XX0seyJpIjo5LCJuIjoiQ29tYm8gOSIsImNhcmRzIjpbeyJzIjoiVW5jaGFpbmVkIFR3aW5zIC0gQXJ1aGEiLCJjSWQiOiIyNjIzNjU2MCIsImlDIjpmYWxzZSwiZGVjayI6MSwibWluIjoxLCJtYXgiOjEsImxvZ2ljIjoiQU5EIn0seyJzIjoiQWJvbWluYWJsZSBDaGFtYmVyIG9mIHRoZSBVbmNoYWluZWQiLCJjSWQiOiI4MDgwMTc0MyIsImlDIjpmYWxzZSwiZGVjayI6MiwibWluIjoxLCJtYXgiOjIsImxvZ2ljIjoiQU5EIn1dfSx7ImkiOjEwLCJuIjoiQ29tYm8gMTAiLCJjYXJkcyI6W3sicyI6IlVuY2hhaW5lZCBUd2lucyAtIEFydWhhIiwiY0lkIjoiMjYyMzY1NjAiLCJpQyI6ZmFsc2UsImRlY2siOjEsIm1pbiI6MSwibWF4IjoxLCJsb2dpYyI6IkFORCJ9LHsicyI6IkVzY2FwZSBvZiB0aGUgVW5jaGFpbmVkIiwiY0lkIjoiNTM0MTc2OTUiLCJpQyI6ZmFsc2UsImRlY2siOjEsIm1pbiI6MSwibWF4IjoxLCJsb2dpYyI6IkFORCJ9XX0seyJpIjoxMSwibiI6IkNvbWJvIDExIiwiY2FyZHMiOlt7InMiOiJGaWVuZHNtaXRoJ3MgVHJhY3QiLCJjSWQiOiI5ODU2NzIzNyIsImlDIjpmYWxzZSwiZGVjayI6MiwibWluIjoxLCJtYXgiOjIsImxvZ2ljIjoiQU5EIn1dfSx7ImkiOjEyLCJuIjoiQ29tYm8gMTIiLCJjYXJkcyI6W3sicyI6IkZpZW5kc21pdGgncyBTYW5jdCIsImNJZCI6IjM1NTUyOTg1IiwiaUMiOmZhbHNlLCJkZWNrIjoxLCJtaW4iOjEsIm1heCI6MSwibG9naWMiOiJBTkQifV19LHsiaSI6MTMsIm4iOiJDb21ibyAxMyIsImNhcmRzIjpbeyJzIjoiRmFibGVkIEx1cnJpZSIsImNJZCI6Ijk3NjUxNDk4IiwiaUMiOmZhbHNlLCJkZWNrIjoxLCJtaW4iOjEsIm1heCI6MSwibG9naWMiOiJBTkQifV19XSwidGVzdEhhbmQiOnRydWUsInlkayI6eyJuYW1lIjoiVW5jaGFpbmVkIDIzLTExLnlkayIsImNvbnRlbnQiOiIjY3JlYXRlZCBieSAuLi5cbiNtYWluXG4xOTY2NDM4XG4xNDU1ODEyN1xuMTQ1NTgxMjdcbjE0NTU4MTI3XG4xOTAwMDg0OFxuMTkwMDA4NDhcbjE5MDAwODQ4XG45NzY1MTQ5OFxuNjA3NjQ2MDlcbjYwNzY0NjA5XG42MDc2NDYwOVxuNzM2NDIyOTZcbjI4ODAzMTY2XG4yODgwMzE2NlxuMjg4MDMxNjZcbjQyMTQxNDkzXG40MjE0MTQ5M1xuNDExNjU4MzFcbjQxMTY1ODMxXG44ODU1NDQzNlxuMjYyMzY1NjBcbjMxNTg4NTcyXG4yNzQxMjU0MlxuMjc0MTI1NDJcbjI3NDEyNTQyXG4yNDIyNDgzMFxuNjU2ODE5ODNcbjM1NTUyOTg1XG45ODU2NzIzN1xuOTg1NjcyMzdcbjI0Mjk5NDU4XG4yNDI5OTQ1OFxuMjQyOTk0NThcbjcxNTkzNjUyXG4yNTMxMTAwNlxuMzUyNjk5MDRcbjM1MjY5OTA0XG4zNTI2OTkwNFxuODA4MDE3NDNcbjgwODAxNzQzXG41MzQxNzY5NVxuOTk5ODk4NjNcbiNleHRyYVxuMjgxNDMzODRcbjgyMTM1ODAzXG40NTQwOTk0M1xuOTM4NjAyMjdcbjc5NTU5OTEyXG40NzMxNzgzXG4yNDYzNzk0XG40OTg2Nzg5OVxuMjkzMDE0NTBcbjI5NDc5MjY1XG4yNDI2OTk2MVxuMjQyNjk5NjFcbjkzMDg0NjIxXG42NzY4MDUxMlxuOTgxMjc1NDZcbiFzaWRlXG45NDE0NTAyMVxuOTQxNDUwMjFcbjk0MTQ1MDIxXG40NjU2NTIxOFxuNTQ2OTM5MjZcbjU0NjkzOTI2XG4xODE0NDUwNlxuMTQ1MzIxNjNcbjE0NTMyMTYzXG41ODkyMTA0MVxuMzE4NDkxMDZcbjE1NjkzNDIzXG4xNTY5MzQyM1xuMTY0NzEwXG44MjczMjcwNVxuIn0sInpvbmVzIjp7Im1haW4iOlt7ImNJZCI6IjE5NjY0MzgiLCJuIjoiQWJvbWluYWJsZSBVbmNoYWluZWQgU291bCIsInQiOiJFZmZlY3QgTW9uc3RlciIsImwiOjgsImEiOiJEQVJLIn0seyJjSWQiOiIxNDU1ODEyNyIsIm4iOiJBc2ggQmxvc3NvbSAmIEpveW91cyBTcHJpbmciLCJ0IjoiVHVuZXIgTW9uc3RlciIsImwiOjMsImEiOiJGSVJFIn0seyJjSWQiOiIxNDU1ODEyNyIsIm4iOiJBc2ggQmxvc3NvbSAmIEpveW91cyBTcHJpbmciLCJ0IjoiVHVuZXIgTW9uc3RlciIsImwiOjMsImEiOiJGSVJFIn0seyJjSWQiOiIxNDU1ODEyNyIsIm4iOiJBc2ggQmxvc3NvbSAmIEpveW91cyBTcHJpbmciLCJ0IjoiVHVuZXIgTW9uc3RlciIsImwiOjMsImEiOiJGSVJFIn0seyJjSWQiOiIxOTAwMDg0OCIsIm4iOiJCdWlvIHRoZSBEYXduJ3MgTGlnaHQiLCJ0IjoiRWZmZWN0IE1vbnN0ZXIiLCJsIjozLCJhIjoiREFSSyJ9LHsiY0lkIjoiMTkwMDA4NDgiLCJuIjoiQnVpbyB0aGUgRGF3bidzIExpZ2h0IiwidCI6IkVmZmVjdCBNb25zdGVyIiwibCI6MywiYSI6IkRBUksifSx7ImNJZCI6IjE5MDAwODQ4IiwibiI6IkJ1aW8gdGhlIERhd24ncyBMaWdodCIsInQiOiJFZmZlY3QgTW9uc3RlciIsImwiOjMsImEiOiJEQVJLIn0seyJjSWQiOiI5NzY1MTQ5OCIsIm4iOiJGYWJsZWQgTHVycmllIiwidCI6IkVmZmVjdCBNb25zdGVyIiwibCI6MSwiYSI6IkxJR0hUIn0seyJjSWQiOiI2MDc2NDYwOSIsIm4iOiJGaWVuZHNtaXRoIEVuZ3JhdmVyIiwidCI6IkVmZmVjdCBNb25zdGVyIiwibCI6NiwiYSI6IkxJR0hUIn0seyJjSWQiOiI2MDc2NDYwOSIsIm4iOiJGaWVuZHNtaXRoIEVuZ3JhdmVyIiwidCI6IkVmZmVjdCBNb25zdGVyIiwibCI6NiwiYSI6IkxJR0hUIn0seyJjSWQiOiI2MDc2NDYwOSIsIm4iOiJGaWVuZHNtaXRoIEVuZ3JhdmVyIiwidCI6IkVmZmVjdCBNb25zdGVyIiwibCI6NiwiYSI6IkxJR0hUIn0seyJjSWQiOiI3MzY0MjI5NiIsIm4iOiJHaG9zdCBCZWxsZSAmIEhhdW50ZWQgTWFuc2lvbiIsInQiOiJUdW5lciBNb25zdGVyIiwibCI6MywiYSI6IkVBUlRIIn0seyJjSWQiOiIyODgwMzE2NiIsIm4iOiJMYWNyaW1hIHRoZSBDcmltc29uIFRlYXJzIiwidCI6IkVmZmVjdCBNb25zdGVyIiwibCI6NCwiYSI6IkxJR0hUIn0seyJjSWQiOiIyODgwMzE2NiIsIm4iOiJMYWNyaW1hIHRoZSBDcmltc29uIFRlYXJzIiwidCI6IkVmZmVjdCBNb25zdGVyIiwibCI6NCwiYSI6IkxJR0hUIn0seyJjSWQiOiIyODgwMzE2NiIsIm4iOiJMYWNyaW1hIHRoZSBDcmltc29uIFRlYXJzIiwidCI6IkVmZmVjdCBNb25zdGVyIiwibCI6NCwiYSI6IkxJR0hUIn0seyJjSWQiOiI0MjE0MTQ5MyIsIm4iOiJNdWxjaGFybXkgRnV3YWxvcyIsInQiOiJFZmZlY3QgTW9uc3RlciIsImwiOjQsImEiOiJXSU5EIn0seyJjSWQiOiI0MjE0MTQ5MyIsIm4iOiJNdWxjaGFybXkgRnV3YWxvcyIsInQiOiJFZmZlY3QgTW9uc3RlciIsImwiOjQsImEiOiJXSU5EIn0seyJjSWQiOiI0MTE2NTgzMSIsIm4iOiJVbmNoYWluZWQgU291bCBvZiBTaGFydmFyYSIsInQiOiJFZmZlY3QgTW9uc3RlciIsImwiOjYsImEiOiJGSVJFIn0seyJjSWQiOiI0MTE2NTgzMSIsIm4iOiJVbmNoYWluZWQgU291bCBvZiBTaGFydmFyYSIsInQiOiJFZmZlY3QgTW9uc3RlciIsImwiOjYsImEiOiJGSVJFIn0seyJjSWQiOiI4ODU1NDQzNiIsIm4iOiJVbmNoYWluZWQgU291bCBvZiBTaHlhbWEiLCJ0IjoiRWZmZWN0IE1vbnN0ZXIiLCJsIjo2LCJhIjoiV0FURVIifSx7ImNJZCI6IjI2MjM2NTYwIiwibiI6IlVuY2hhaW5lZCBUd2lucyAtIEFydWhhIiwidCI6IkVmZmVjdCBNb25zdGVyIiwibCI6MywiYSI6IkZJUkUifSx7ImNJZCI6IjMxNTg4NTcyIiwibiI6IlVuY2hhaW5lZCBUd2lucyAtIFNhcmFtYSIsInQiOiJFZmZlY3QgTW9uc3RlciIsImwiOjMsImEiOiJEQVJLIn0seyJjSWQiOiIyNzQxMjU0MiIsIm4iOiJBYm9taW5hdGlvbidzIFByaXNvbiIsInQiOiJTcGVsbCBDYXJkIiwibCI6bnVsbCwiYSI6bnVsbH0seyJjSWQiOiIyNzQxMjU0MiIsIm4iOiJBYm9taW5hdGlvbidzIFByaXNvbiIsInQiOiJTcGVsbCBDYXJkIiwibCI6bnVsbCwiYSI6bnVsbH0seyJjSWQiOiIyNzQxMjU0MiIsIm4iOiJBYm9taW5hdGlvbidzIFByaXNvbiIsInQiOiJTcGVsbCBDYXJkIiwibCI6bnVsbCwiYSI6bnVsbH0seyJjSWQiOiIyNDIyNDgzMCIsIm4iOiJDYWxsZWQgYnkgdGhlIEdyYXZlIiwidCI6IlNwZWxsIENhcmQiLCJsIjpudWxsLCJhIjpudWxsfSx7ImNJZCI6IjY1NjgxOTgzIiwibiI6IkNyb3Nzb3V0IERlc2lnbmF0b3IiLCJ0IjoiU3BlbGwgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoiMzU1NTI5ODUiLCJuIjoiRmllbmRzbWl0aCdzIFNhbmN0IiwidCI6IlNwZWxsIENhcmQiLCJsIjpudWxsLCJhIjpudWxsfSx7ImNJZCI6Ijk4NTY3MjM3IiwibiI6IkZpZW5kc21pdGgncyBUcmFjdCIsInQiOiJTcGVsbCBDYXJkIiwibCI6bnVsbCwiYSI6bnVsbH0seyJjSWQiOiI5ODU2NzIzNyIsIm4iOiJGaWVuZHNtaXRoJ3MgVHJhY3QiLCJ0IjoiU3BlbGwgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoiMjQyOTk0NTgiLCJuIjoiRm9yYmlkZGVuIERyb3BsZXQiLCJ0IjoiU3BlbGwgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoiMjQyOTk0NTgiLCJuIjoiRm9yYmlkZGVuIERyb3BsZXQiLCJ0IjoiU3BlbGwgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoiMjQyOTk0NTgiLCJuIjoiRm9yYmlkZGVuIERyb3BsZXQiLCJ0IjoiU3BlbGwgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoiNzE1OTM2NTIiLCJuIjoiTXV0aW55IGluIHRoZSBTa3kiLCJ0IjoiU3BlbGwgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoiMjUzMTEwMDYiLCJuIjoiVHJpcGxlIFRhY3RpY3MgVGFsZW50IiwidCI6IlNwZWxsIENhcmQiLCJsIjpudWxsLCJhIjpudWxsfSx7ImNJZCI6IjM1MjY5OTA0IiwibiI6IlRyaXBsZSBUYWN0aWNzIFRocnVzdCIsInQiOiJTcGVsbCBDYXJkIiwibCI6bnVsbCwiYSI6bnVsbH0seyJjSWQiOiIzNTI2OTkwNCIsIm4iOiJUcmlwbGUgVGFjdGljcyBUaHJ1c3QiLCJ0IjoiU3BlbGwgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoiMzUyNjk5MDQiLCJuIjoiVHJpcGxlIFRhY3RpY3MgVGhydXN0IiwidCI6IlNwZWxsIENhcmQiLCJsIjpudWxsLCJhIjpudWxsfSx7ImNJZCI6IjgwODAxNzQzIiwibiI6IkFib21pbmFibGUgQ2hhbWJlciBvZiB0aGUgVW5jaGFpbmVkIiwidCI6IlRyYXAgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoiODA4MDE3NDMiLCJuIjoiQWJvbWluYWJsZSBDaGFtYmVyIG9mIHRoZSBVbmNoYWluZWQiLCJ0IjoiVHJhcCBDYXJkIiwibCI6bnVsbCwiYSI6bnVsbH0seyJjSWQiOiI1MzQxNzY5NSIsIm4iOiJFc2NhcGUgb2YgdGhlIFVuY2hhaW5lZCIsInQiOiJUcmFwIENhcmQiLCJsIjpudWxsLCJhIjpudWxsfSx7ImNJZCI6Ijk5OTg5ODYzIiwibiI6IkZpZW5kc21pdGggaW4gUGFyYWRpc2UiLCJ0IjoiVHJhcCBDYXJkIiwibCI6bnVsbCwiYSI6bnVsbH1dLCJleHRyYSI6W3siY0lkIjoiMjgxNDMzODQiLCJuIjoiQWVyaWFsIEVhdGVyIiwidCI6IkZ1c2lvbiBNb25zdGVyIiwibCI6NiwiYSI6IldJTkQifSx7ImNJZCI6IjgyMTM1ODAzIiwibiI6IkZpZW5kc21pdGgncyBEZXNpcmFlIiwidCI6IkZ1c2lvbiBNb25zdGVyIiwibCI6OSwiYSI6IkxJR0hUIn0seyJjSWQiOiI0NTQwOTk0MyIsIm4iOiJMdWNlIHRoZSBEdXNrJ3MgRGFyayIsInQiOiJGdXNpb24gTW9uc3RlciIsImwiOjgsImEiOiJEQVJLIn0seyJjSWQiOiI5Mzg2MDIyNyIsIm4iOiJOZWNyb3F1aXAgUHJpbmNlc3MiLCJ0IjoiRnVzaW9uIE1vbnN0ZXIiLCJsIjo2LCJhIjoiREFSSyJ9LHsiY0lkIjoiNzk1NTk5MTIiLCJuIjoiRC9EL0QgV2F2ZSBIaWdoIEtpbmcgQ2Flc2FyIiwidCI6IlhZWiBNb25zdGVyIiwibCI6NiwiYSI6IldBVEVSIn0seyJjSWQiOiI0NzMxNzgzIiwibiI6IkEgQmFvIEEgUXUsIHRoZSBMaWdodGxlc3MgU2hhZG93IiwidCI6IkxpbmsgTW9uc3RlciIsImwiOm51bGwsImEiOiJEQVJLIn0seyJjSWQiOiIyNDYzNzk0IiwibiI6IkZpZW5kc21pdGgncyBSZXF1aWVtIiwidCI6IkxpbmsgTW9uc3RlciIsImwiOm51bGwsImEiOiJMSUdIVCJ9LHsiY0lkIjoiNDk4Njc4OTkiLCJuIjoiRmllbmRzbWl0aCdzIFNlcXVlbmNlIiwidCI6IkxpbmsgTW9uc3RlciIsImwiOm51bGwsImEiOiJMSUdIVCJ9LHsiY0lkIjoiMjkzMDE0NTAiLCJuIjoiUzpQIExpdHRsZSBLbmlnaHQiLCJ0IjoiTGluayBNb25zdGVyIiwibCI6bnVsbCwiYSI6IkRBUksifSx7ImNJZCI6IjI5NDc5MjY1IiwibiI6IlVuY2hhaW5lZCBBYm9taW5hdGlvbiIsInQiOiJMaW5rIE1vbnN0ZXIiLCJsIjpudWxsLCJhIjoiREFSSyJ9LHsiY0lkIjoiMjQyNjk5NjEiLCJuIjoiVW5jaGFpbmVkIFNvdWwgTG9yZCBvZiBZYW1hIiwidCI6IkxpbmsgTW9uc3RlciIsImwiOm51bGwsImEiOiJEQVJLIn0seyJjSWQiOiIyNDI2OTk2MSIsIm4iOiJVbmNoYWluZWQgU291bCBMb3JkIG9mIFlhbWEiLCJ0IjoiTGluayBNb25zdGVyIiwibCI6bnVsbCwiYSI6IkRBUksifSx7ImNJZCI6IjkzMDg0NjIxIiwibiI6IlVuY2hhaW5lZCBTb3VsIG9mIEFuZ3Vpc2giLCJ0IjoiTGluayBNb25zdGVyIiwibCI6bnVsbCwiYSI6IkRBUksifSx7ImNJZCI6IjY3NjgwNTEyIiwibiI6IlVuY2hhaW5lZCBTb3VsIG9mIFJhZ2UiLCJ0IjoiTGluayBNb25zdGVyIiwibCI6bnVsbCwiYSI6IkRBUksifSx7ImNJZCI6Ijk4MTI3NTQ2IiwibiI6IlVuZGVyd29ybGQgR29kZGVzcyBvZiB0aGUgQ2xvc2VkIFdvcmxkIiwidCI6IkxpbmsgTW9uc3RlciIsImwiOm51bGwsImEiOiJMSUdIVCJ9XSwic2lkZSI6W3siY0lkIjoiOTQxNDUwMjEiLCJuIjoiRHJvbGwgJiBMb2NrIEJpcmQiLCJ0IjoiRWZmZWN0IE1vbnN0ZXIiLCJsIjoxLCJhIjoiV0lORCJ9LHsiY0lkIjoiOTQxNDUwMjEiLCJuIjoiRHJvbGwgJiBMb2NrIEJpcmQiLCJ0IjoiRWZmZWN0IE1vbnN0ZXIiLCJsIjoxLCJhIjoiV0lORCJ9LHsiY0lkIjoiOTQxNDUwMjEiLCJuIjoiRHJvbGwgJiBMb2NrIEJpcmQiLCJ0IjoiRWZmZWN0IE1vbnN0ZXIiLCJsIjoxLCJhIjoiV0lORCJ9LHsiY0lkIjoiNDY1NjUyMTgiLCJuIjoiU2FudGEgQ2xhd3MiLCJ0IjoiRWZmZWN0IE1vbnN0ZXIiLCJsIjo2LCJhIjoiTElHSFQifSx7ImNJZCI6IjU0NjkzOTI2IiwibiI6IkRhcmsgUnVsZXIgTm8gTW9yZSIsInQiOiJTcGVsbCBDYXJkIiwibCI6bnVsbCwiYSI6bnVsbH0seyJjSWQiOiI1NDY5MzkyNiIsIm4iOiJEYXJrIFJ1bGVyIE5vIE1vcmUiLCJ0IjoiU3BlbGwgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoiMTgxNDQ1MDYiLCJuIjoiR29pbmdnb2luZ1wiLCJ0IjoiU3BlbGwgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoiMTQ1MzIxNjMiLCJuIjoiTGlnaHRuaW5nIFN0b3JtIiwidCI6IlNwZWxsIENhcmQiLCJsIjpudWxsLCJhIjpudWxsfSx7ImNJZCI6IjE0NTMyMTYzIiwibiI6IkxpZ2h0bmluZyBTdG9ybSIsInQiOiJTcGVsbCBDYXJkIiwibCI6bnVsbCwiYSI6bnVsbH0seyJjSWQiOiI1ODkyMTA0MSIsIm4iOiJBbnRpLVNwZWxsIEZyYWdyYW5jZSIsInQiOiJUcmFwIENhcmQiLCJsIjpudWxsLCJhIjpudWxsfSx7ImNJZCI6IjMxODQ5MTA2IiwibiI6IkRpZmZlcmVudCBEaW1lbnNpb24gR3JvdW5kIiwidCI6IlRyYXAgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoiMTU2OTM0MjMiLCJuIjoiRXZlbmx5IE1hdGNoZWQiLCJ0IjoiVHJhcCBDYXJkIiwibCI6bnVsbCwiYSI6bnVsbH0seyJjSWQiOiIxNTY5MzQyMyIsIm4iOiJFdmVubHkgTWF0Y2hlZCIsInQiOiJUcmFwIENhcmQiLCJsIjpudWxsLCJhIjpudWxsfSx7ImNJZCI6IjE2NDcxMCIsIm4iOiJNaXNjaGllZiBvZiB0aGUgR25vbWVzIiwidCI6IlRyYXAgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoiODI3MzI3MDUiLCJuIjoiU2tpbGwgRHJhaW4iLCJ0IjoiVHJhcCBDYXJkIiwibCI6bnVsbCwiYSI6bnVsbH1dfX0="
-//     },
-//     {
-//       title: "OCG Format - Cyber Dragon (Top 4 in Wuhan Donghu College 1/11/2025)",
-//       description: "~96% consistency going 2nd with the ultimate Board breaker deck",
-//       link: "https://www.firstdrawgg.online/#calc=eyJkIjo0MCwiaCI6NiwiYyI6W3siaSI6MSwibiI6IlN0YXJ0ZXJzIiwiY2FyZHMiOlt7InMiOiJDeWJlciBFbWVyZ2VuY3kiLCJjSWQiOjYwMTY2ODYsImlDIjpmYWxzZSwiZGVjayI6MywibWluIjoxLCJtYXgiOjMsImxvZ2ljIjoiQU5EIn0seyJzIjoiQ3liZXIgUmVwYWlyIFBsYW50IiwiY0lkIjo3NzgzMjU0OCwiaUMiOmZhbHNlLCJkZWNrIjozLCJtaW4iOjEsIm1heCI6MywibG9naWMiOiJPUiJ9LHsicyI6Ik5hY2hzdGVyIiwiY0lkIjo3OTU3OTc1OSwiaUMiOmZhbHNlLCJkZWNrIjozLCJtaW4iOjEsIm1heCI6MywibG9naWMiOiJPUiJ9XX1dLCJ0ZXN0SGFuZCI6ZmFsc2UsInpvbmVzIjp7Im1haW4iOlt7ImNJZCI6NjAxNjY4NiwibiI6IkN5YmVyIEVtZXJnZW5jeSIsInQiOiJTcGVsbCBDYXJkIiwibCI6bnVsbCwiYSI6bnVsbH0seyJjSWQiOjYwMTY2ODYsIm4iOiJDeWJlciBFbWVyZ2VuY3kiLCJ0IjoiU3BlbGwgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjo2MDE2Njg2LCJuIjoiQ3liZXIgRW1lcmdlbmN5IiwidCI6IlNwZWxsIENhcmQiLCJsIjpudWxsLCJhIjpudWxsfSx7ImNJZCI6Nzc4MzI1NDgsIm4iOiJDeWJlciBSZXBhaXIgUGxhbnQiLCJ0IjoiU3BlbGwgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjo3NzgzMjU0OCwibiI6IkN5YmVyIFJlcGFpciBQbGFudCIsInQiOiJTcGVsbCBDYXJkIiwibCI6bnVsbCwiYSI6bnVsbH0seyJjSWQiOjc3ODMyNTQ4LCJuIjoiQ3liZXIgUmVwYWlyIFBsYW50IiwidCI6IlNwZWxsIENhcmQiLCJsIjpudWxsLCJhIjpudWxsfSx7ImNJZCI6Nzk1Nzk3NTksIm4iOiJOYWNoc3RlciIsInQiOiJFZmZlY3QgTW9uc3RlciIsImwiOjQsImEiOiJMSUdIVCJ9LHsiY0lkIjo3OTU3OTc1OSwibiI6Ik5hY2hzdGVyIiwidCI6IkVmZmVjdCBNb25zdGVyIiwibCI6NCwiYSI6IkxJR0hUIn0seyJjSWQiOjc5NTc5NzU5LCJuIjoiTmFjaHN0ZXIiLCJ0IjoiRWZmZWN0IE1vbnN0ZXIiLCJsIjo0LCJhIjoiTElHSFQifSx7ImNJZCI6NDQ0MDYzNTksIm4iOiJDeWJlciBEcmFnb24iLCJ0IjoiRWZmZWN0IE1vbnN0ZXIiLCJsIjo1LCJhIjoiTElHSFQifSx7ImNJZCI6NDQ0MDYzNTksIm4iOiJDeWJlciBEcmFnb24iLCJ0IjoiRWZmZWN0IE1vbnN0ZXIiLCJsIjo1LCJhIjoiTElHSFQifSx7ImNJZCI6NDQ0MDYzNTksIm4iOiJDeWJlciBEcmFnb24iLCJ0IjoiRWZmZWN0IE1vbnN0ZXIiLCJsIjo1LCJhIjoiTElHSFQifSx7ImNJZCI6MTA5NTQ0OTksIm4iOiJDeWJlciBEcmFnb24gSGVyeiIsInQiOiJFZmZlY3QgTW9uc3RlciIsImwiOjUsImEiOiJMSUdIVCJ9LHsiY0lkIjoxMDk1NDQ5OSwibiI6IkN5YmVyIERyYWdvbiBIZXJ6IiwidCI6IkVmZmVjdCBNb25zdGVyIiwibCI6NSwiYSI6IkxJR0hUIn0seyJjSWQiOjM1NDAwMjksIm4iOiJDeWJlciBEcmFnb24gQ29yZSIsInQiOiJFZmZlY3QgTW9uc3RlciIsImwiOjIsImEiOiJMSUdIVCJ9LHsiY0lkIjozNTQwMDI5LCJuIjoiQ3liZXIgRHJhZ29uIENvcmUiLCJ0IjoiRWZmZWN0IE1vbnN0ZXIiLCJsIjoyLCJhIjoiTElHSFQifSx7ImNJZCI6MzU0MDAyOSwibiI6IkN5YmVyIERyYWdvbiBDb3JlIiwidCI6IkVmZmVjdCBNb25zdGVyIiwibCI6MiwiYSI6IkxJR0hUIn0seyJjSWQiOjU5MTYwMTg4LCJuIjoiQ3liZXIgRHJhZ29uIE5hY2hzdGVyIiwidCI6IkVmZmVjdCBNb25zdGVyIiwibCI6MSwiYSI6IkxJR0hUIn0seyJjSWQiOjQ5OTQ2MTYyLCJuIjoiR2FsYXhlYS1CZWVuIiwidCI6IkVmZmVjdCBNb25zdGVyIiwibCI6MiwiYSI6IkVBUlRIIn0seyJjSWQiOjQ5OTQ2MTYyLCJuIjoiR2FsYXhlYS1CZWVuIiwidCI6IkVmZmVjdCBNb25zdGVyIiwibCI6MiwiYSI6IkVBUlRIIn0seyJjSWQiOjQ5OTQ2MTYyLCJuIjoiR2FsYXhlYS1CZWVuIiwidCI6IkVmZmVjdCBNb25zdGVyIiwibCI6MiwiYSI6IkVBUlRIIn0seyJjSWQiOjE0OTM2MTc1LCJuIjoiTmliaXJ1LCBQcmltYWwgQmVpbmciLCJ0IjoiRWZmZWN0IE1vbnN0ZXIiLCJsIjoxMSwiYSI6IkxJR0hUIn0seyJjSWQiOjkzNDQwNTQ0LCJuIjoiRmVuZ3Nob3VjaSBRaWxpbiIsInQiOiJFZmZlY3QgTW9uc3RlciIsImwiOjUsImEiOiJMSUdIVCJ9LHsiY0lkIjoyNjkwMzE3NiwibiI6IlN5bWJvbCBvZiBIZXJpdGFnZSIsInQiOiJTcGVsbCBDYXJkIiwibCI6bnVsbCwiYSI6bnVsbH0seyJjSWQiOjI2OTAzMTc2LCJuIjoiU3ltYm9sIG9mIEhlcml0YWdlIiwidCI6IlNwZWxsIENhcmQiLCJsIjpudWxsLCJhIjpudWxsfSx7ImNJZCI6MjY5MDMxNzYsIm4iOiJTeW1ib2wgb2YgSGVyaXRhZ2UiLCJ0IjoiU3BlbGwgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoyNDE5MDE2LCJuIjoiQm9uZWxlc3MiLCJ0IjoiU3BlbGwgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoyNDE5MDE2LCJuIjoiQm9uZWxlc3MiLCJ0IjoiU3BlbGwgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoyNDE5MDE2LCJuIjoiQm9uZWxlc3MiLCJ0IjoiU3BlbGwgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjo1NTE0NC1hLCJuIjoiSGFycGllJ3MgRmVhdGhlciBEdXN0ZXIiLCJ0IjoiU3BlbGwgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoxOTE2MTMsIm4iOiJDYWxsZWQgYnkgdGhlIEdyYXZlIiwidCI6IlRyYXAgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoxOTE2MTMsIm4iOiJDYWxsZWQgYnkgdGhlIEdyYXZlIiwidCI6IlRyYXAgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjoxOTE2MTMsIm4iOiJDYWxsZWQgYnkgdGhlIEdyYXZlIiwidCI6IlRyYXAgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjo1MTE4OTg3LCJuIjoiSW5maW5pdGUgSW1wZXJtYW5lbmNlIiwidCI6IlRyYXAgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjo1MTE4OTg3LCJuIjoiSW5maW5pdGUgSW1wZXJtYW5lbmNlIiwidCI6IlRyYXAgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjo1MTE4OTg3LCJuIjoiSW5maW5pdGUgSW1wZXJtYW5lbmNlIiwidCI6IlRyYXAgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9LHsiY0lkIjo4NDc0OTgyNSwibiI6IkV2ZXJseS1Ib25lc3QgU29sZGllciIsInQiOiJUcmFwIENhcmQiLCJsIjpudWxsLCJhIjpudWxsfSx7ImNJZCI6ODQ3NDk4MjUsIm4iOiJFdmVybHktSG9uZXN0IFNvbGRpZXIiLCJ0IjoiVHJhcCBDYXJkIiwibCI6bnVsbCwiYSI6bnVsbH0seyJjSWQiOjg0NzQ5ODI1LCJuIjoiRXZlcmx5LUhvbmVzdCBTb2xkaWVyIiwidCI6IlRyYXAgQ2FyZCIsImwiOm51bGwsImEiOm51bGx9XSwiZXh0cmEiOlt7ImNJZCI6MTU5MDUzNjgsIm4iOiJDbG91ZCBDYXN0bGUiLCJ0IjoiWHl6IE1vbnN0ZXIiLCJsIjo5LCJhIjoiREFSSyJ9LHsiY0lkIjo0MTk5ODU3MiwibiI6IlN1cGVyIEhlYXZ5IFNhbXVyYWkgU2FyYWtvdGFua2V0c3UiLCJ0IjoiWHl6IE1vbnN0ZXIiLCJsIjo4LCJhIjoiRUFSVEgifSx7ImNJZCI6Nzc1OTMyMzksIm4iOiJEaW5naXJzdSIsInQiOiJYeXogTW9uc3RlciIsImwiOjcsImEiOiJFQVJUSCJ9LHsiY0lkIjoxNzU4MDczMjQsIm4iOiJTYW5kYW9uLCB0aGUgRGFyayBCZWFzdCIsInQiOiJYeXogTW9uc3RlciIsImwiOjcsImEiOiJXQVRFUiJ9LHsiY0lkIjo1MDM4ODzNjEyLCJuIjoiS2l6YW4sIHRoZSBCaWRkaW5nIEJsYXplIiwidCI6IlhpeiByb25zdGVyIiwibCI6NywiYSI6IkZJUkUifSx7ImNJZCI6MTU5NTIyODAsIm4iOiJEaXZpbmUgQXJzZW5hbCBBQS1aZXVzIC0gU2t5IFRodW5kZXIiLCJ0IjoiWHl6IE1vbnN0ZXIiLCJsIjo3LCJhIjoiTElHSFQifSx7ImNJZCI6OTE0ODA4NjAsIm4iOiJIb3BlIEhhcmJpbmdlciBEcmFnb24gQ2hyb25vZ3JhcGggQ2hhb3MgQXRoZW5hIiwidCI6IlhzeiByb25zdGVyIiwibCI6NCwiYSI6IkRBUksifSx7ImNJZCI6NDQ2MDU4NSwibiI6IkN5YmVyIERyYWdvbiA1NS00NDUiLCJ0IjoiRnVzaW9uIE1vbnN0ZXIiLCJsIjo1LCJhIjoiREFSSyJ9LHsiY0lkIjo3Mzk2MjQ2MCwibiI6IkN5YmVyIERyYWdvbiBJbmZpbml0eSIsInQiOiJGdXNpb24gTW9uc3RlciIsImwiOjUsImEiOiJMSUdIVCJ9LHsiY0lkIjoyODU2MTIxOCwibiI6IkN5YmVybG9hZCBGdXNpb24iLCJ0IjoiRnVzaW9uIE1vbnN0ZXIiLCJsIjo4LCJhIjoiTElHSFQifSx7ImNJZCI6Nzg1MjE1MDUsIm4iOiJDeWJlciBFdGVybmFsIiwidCI6IkZ1c2lvbiBNb25zdGVyIiwibCI6MTAsImEiOiJMSUdIVCJ9LHsiY0lkIjo3Nzk5OTY3MiwibiI6IkN5YmVyIERyYWdvbiBTaWVnZXIiLCJ0IjoiTGluayBNb25zdGVyIiwibCI6bnVsbCwiYSI6IkRBUksifSx7ImNJZCI6ODE2ODU3NCwibiI6IlByZWRhcGxhbnQgQ2hpbWVyYWZmbGVzaWEiLCJ0IjoiTGluayBNb25zdGVyIiwibCI6bnVsbCwiYSI6IkRBUksifSx7ImNJZCI6NjEyMTc4NDYsIm4iOiJJOlAgTWFzcXVlcmVuYSIsInQiOiJMaW5rIE1vbnN0ZXIiLCJsIjpudWxsLCJhIjoiRUFSVEgifSx7ImNJZCI6NjcxNjUyNSwibiI6IlMuUC5MLkkuR0guVC0gRWxmIiwidCI6IkxpbmsgTW9uc3RlciIsImwiOm51bGwsImEiOiJMSUdIVCJ9XSwic2lkZSI6W119fQ=="
-//     }
-//   ];
-
-//   // Handle top deck click
-//   const handleTopDeckClick = (link, deckTitle) => {
-//     try {
-//       // Extract the calc parameter from the URL
-//       const match = link.match(/#calc=(.+)/);
-//       if (!match) return;
-
-//       // Decode the calculation data
-//       const decoded = atob(match[1]);
-//       const data = JSON.parse(decoded);
-
-//       // Clear deck zones and YDK file info before loading new deck
-//       setDeckZones({
-//         main: [],
-//         extra: [],
-//         side: []
-//       });
-//       setUploadedYdkFile(null);
-
-//       // Load the deck data into the app
-//       setDeckSize(data.d);
-//       setHandSize(data.h);
-//       setTestHandFromDecklist(data.testHandFromDecklist !== undefined ? data.testHandFromDecklist : true);
-
-//       const loadedCombos = data.c.map(combo => ({
-//         id: combo.i,
-//         name: combo.n,
-//         cards: combo.cards.map(card => ({
-//           starterCard: card.s || '',
-//           cardId: card.cId || null,
-//           isCustom: card.iC || false,
-//           startersInDeck: card.deck,
-//           minCopiesInHand: card.min,
-//           maxCopiesInHand: card.max,
-//           logicOperator: card.logic || 'AND'
-//         }))
-//       }));
-      
-//       setCombos(loadedCombos);
-      
-//       // Calculate results
-//       setTimeout(() => {
-//         const calculatedResults = ProbabilityService.calculateMultipleCombos(loadedCombos, data.d, data.h, ydkCards, ydkCardCounts);
-//         setResults(calculatedResults);
-//         setDashboardValues({
-//           deckSize: data.d,
-//           handSize: data.h,
-//           combos: loadedCombos.map(c => ({ ...c }))
-//         });
-        
-//         // Generate shareable URL
-//         URLService.updateURL(data.d, data.h, loadedCombos, uploadedYdkFile, data.testHandFromDecklist, deckZones);
-//         const url = window.location.href;
-//         setShareableUrl(url);
-        
-//         // Generate title
-//         const title = TitleGeneratorService.generateFunTitle(loadedCombos, data.d, calculatedResults.individual);
-//         setGeneratedTitle(title);
-
-//         // Auto-scroll to Calculation Dashboard
-//         setTimeout(() => scrollToCalculationDashboard(), 200);
-//       }, 100);
-      
-//     } catch (error) {
-//       console.error('Failed to load top deck:', error);
-//     }
-//   };
+  // Engine recognition — simple inline handlers (combo sequences feature not included in this build)
+  const handleEnginesRecognized = (recognizedCombos, cardCounts, uniqueCards, newDeckSize) => {
+    setCombos(recognizedCombos);
+    setDeckSize(newDeckSize);
+    runAutoCalculate(recognizedCombos, cardCounts, uniqueCards, newDeckSize);
+  };
+  const handleDeckReady = () => {};
+  const handleUnknownDeck = () => {};
 
   // Restore calculation from URL on mount
   useEffect(() => {
     const restoreFromURL = () => {
       const urlData = URLService.decodeCalculation();
       if (urlData) {
-        console.log('Restoring calculation from URL:', urlData);
         setIsRestoringFromURL(true);
         setDeckSize(urlData.deckSize);
         setHandSize(urlData.handSize);
@@ -312,7 +246,6 @@ export default function TCGCalculator() {
 
         // Restore deck zones if present
         if (urlData.deckZones) {
-          console.log('Restoring deck zones from URL:', urlData.deckZones);
           setDeckZones(urlData.deckZones);
           setInitialDeckZones(urlData.deckZones);
         }
@@ -339,28 +272,18 @@ export default function TCGCalculator() {
   // Load card database on mount
   useEffect(() => {
     const loadCardDatabase = async () => {
-      console.log('Starting card database load...');
-      
       const cached = CardDatabaseService.loadFromCache();
       if (cached) {
-        console.log('Loaded from cache:', cached.length, 'cards');
         setCardDatabase(cached);
         window.cardDatabase = cached;
         return;
       }
-      
-      console.log('Cache not found or expired, fetching from API...');
-      
+
       const cards = await CardDatabaseService.fetchCards();
-      console.log('Fetched cards:', cards.length);
-      
       if (cards.length > 0) {
         setCardDatabase(cards);
         window.cardDatabase = cards;
         CardDatabaseService.saveToCache(cards);
-        console.log('Cards saved to state and cache');
-      } else {
-        console.log('No cards received from API');
       }
     };
     
@@ -377,181 +300,13 @@ export default function TCGCalculator() {
     loadStaticDatabase();
   }, []);
 
-  // YDK file handling functions
-  const handleYdkFileUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    try {
-      YdkParser.validateYdkFile(file);
-
-      const fileContent = await readFileAsText(file);
-      const parseResult = YdkParser.parseYdkFile(fileContent, staticCardDatabase);
-
-      // Clear existing deck data and combos from URL/Top Deck
-      setCombos([createCombo(1, 0)]);
-      setResults(null);
-      setDashboardValues({ deckSize: 40, handSize: 5, combos: [] });
-      setGeneratedTitle('');
-      setShareableUrl('');
-
-      // Get unique card names (remove duplicates) for search dropdown
-      const uniqueCards = [];
-      const seenNames = new Set();
-
-      parseResult.cards.forEach(card => {
-        if (!seenNames.has(card.name)) {
-          seenNames.add(card.name);
-          uniqueCards.push({
-            name: card.name,
-            id: card.id,
-            isCustom: false
-          });
-        }
-      });
-
-      // Update deck size to match total main deck cards (including duplicates)
-      const mainDeckCardCount = parseResult.cards.length;
-      setDeckSize(mainDeckCardCount);
-      
-      setUploadedYdkFile({
-        name: file.name,
-        content: fileContent
-      });
-      setYdkCards(uniqueCards);
-      setYdkCardCounts(parseResult.cardCounts);
-      setOriginalYdkCardCounts(parseResult.cardCounts); // Store original for Reset
-      console.log('📊 YDK Card Counts after upload:', parseResult.cardCounts);
-
-      // Populate the deck builder with parsed deck zones
-      if (parseResult.deckZones) {
-        setInitialDeckZones(parseResult.deckZones);
-        console.log('🎯 Populating deck builder with:', parseResult.deckZones);
-      }
-
-      // Show error toast only if there are truly unmatched cards (not just Extra Deck cards)
-      if (parseResult.unmatchedIds.length > 0) {
-        alert("Some cards from your YDK file weren't matched");
-      }
-      
-    } catch (error) {
-      console.error('YDK upload error:', error);
-      alert(error.message);
-    }
-  };
-
-  const handleClearYdkFile = () => {
-    setUploadedYdkFile(null);
-    setYdkCards([]);
-    setYdkCardCounts({});
-    setInitialDeckZones(null);
-  };
-
-  const handleFromClipboard = () => {
-    setShowClipboardField(true);
-  };
-
-  const processClipboardContent = async (content) => {
-    if (!content.trim()) {
-      return;
-    }
-
-    try {
-      const parseResult = YdkParser.parseYdkFile(content, staticCardDatabase);
-
-      if (parseResult.cards.length === 0) {
-        alert("No main deck found in pasted text");
-        return;
-      }
-
-      // Clear existing deck data and combos from URL/Top Deck
-      setCombos([createCombo(1, 0)]);
-      setResults(null);
-      setDashboardValues({ deckSize: 40, handSize: 5, combos: [] });
-      setGeneratedTitle('');
-      setShareableUrl('');
-
-      const uniqueCards = [];
-      const seenNames = new Set();
-
-      parseResult.cards.forEach(card => {
-        if (!seenNames.has(card.name)) {
-          seenNames.add(card.name);
-          uniqueCards.push({
-            name: card.name,
-            id: card.id,
-            isCustom: false
-          });
-        }
-      });
-
-      const mainDeckCardCount = parseResult.cards.length;
-      setDeckSize(mainDeckCardCount);
-      
-      setUploadedYdkFile({
-        name: "Clipboard YDK",
-        content: content
-      });
-      setYdkCards(uniqueCards);
-      setYdkCardCounts(parseResult.cardCounts);
-      setShowClipboardField(false);
-      
-      // Don't show unmatched cards alert for clipboard paste - silent processing
-      
-    } catch (error) {
-      console.error('YDK clipboard error:', error);
-      alert("No main deck found in pasted text");
-    }
-  };
-
-  const handleClearClipboard = () => {
-    setUploadedYdkFile(null);
-    setYdkCards([]);
-    setYdkCardCounts({});
-    setClipboardContent('');
-    setShowClipboardField(false);
-  };
-
-  const readFileAsText = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.onerror = (e) => reject(new Error('Failed to read file'));
-      reader.readAsText(file);
-    });
-  };
-
   const typography = {
-    h1: {
-      fontSize: 'var(--font-h2-size)',
-      lineHeight: 'var(--font-h2-line-height)',
-      color: 'var(--text-main)',
-      fontFamily: 'Geist, sans-serif'
-    },
-    h2: {
-      fontSize: 'var(--font-h2-size)',
-      lineHeight: 'var(--font-h2-line-height)',
-      color: 'var(--text-main)',
-      fontFamily: 'Geist, sans-serif'
-    },
-    h3: {
-      fontSize: 'var(--font-h3-size)',
-      lineHeight: 'var(--font-h3-line-height)',
-      color: 'var(--text-main)',
-      fontFamily: 'Geist, sans-serif'
-    },
-    h4: {
-      fontSize: 'var(--font-h3-size)',
-      lineHeight: 'var(--font-h3-line-height)',
-      color: 'var(--text-main)',
-      fontFamily: 'Geist, sans-serif'
-    },
-    body: {
-      fontSize: 'var(--font-body-size)',
-      lineHeight: 'var(--font-body-line-height)',
-      color: 'var(--text-secondary)',
-      fontFamily: 'Geist, sans-serif'
-    }
+    ...TYPOGRAPHY,
+    h1: { ...TYPOGRAPHY.h1, color: 'var(--text-main)' },
+    h2: { ...TYPOGRAPHY.h2, color: 'var(--text-main)' },
+    h3: { ...TYPOGRAPHY.h3, color: 'var(--text-main)' },
+    h4: { ...TYPOGRAPHY.h3, color: 'var(--text-main)' },
+    body: { ...TYPOGRAPHY.body, color: 'var(--text-secondary)' }
   };
 
   const validate = () => {
@@ -601,30 +356,16 @@ export default function TCGCalculator() {
   const hasValidationErrors = Object.keys(errors).length > 0 || deckSize < handSize;
 
   const generateOpeningHand = () => {
-    console.log('🎲 Generating opening hand with:', { combos, deckSize, handSize, testHandFromDecklist, ydkCards });
-    
     let hand;
-    
+
     // AC#3: Use YDK cards when toggle is ON and YDK cards are available
     if (testHandFromDecklist && ydkCards && ydkCards.length > 0 && ydkCardCounts && Object.keys(ydkCardCounts).length > 0) {
-      console.log('🎯 Using YDK cards for opening hand');
       hand = OpeningHandService.generateHandFromYdkCards(ydkCards, ydkCardCounts, handSize);
     } else {
-      console.log('🎯 Using combos for opening hand');
       hand = OpeningHandService.generateProbabilisticHand(combos, deckSize, handSize);
     }
-    
-    console.log('🃏 Generated opening hand:', hand);
-    console.log('🃏 Opening hand details:', hand.map((card, index) => ({ 
-      index, 
-      type: card.type, 
-      cardName: card.cardName, 
-      cardId: card.cardId,
-      isCustom: card.isCustom 
-    })));
-    console.log('💾 About to call setOpeningHand with:', hand);
+
     setOpeningHand(hand);
-    console.log('💾 Called setOpeningHand - state should update on next render');
   };
 
   const refreshOpeningHand = () => {
@@ -740,7 +481,6 @@ export default function TCGCalculator() {
       return newCardCounts;
     });
 
-    console.log('🔄 Synced YDK from combos:', { adjustedCards: Object.keys(cardCountsFromCombos) });
   };
 
   const runCalculation = () => {
@@ -795,13 +535,13 @@ export default function TCGCalculator() {
       handSize: handSize,
       combos: []
     });
-    setEditingComboId(null);
-    setTempComboName('');
     setGeneratedTitle('');
     setShareableUrl('');
     setOpeningHand([]);
+    setAiAnalysis(null);
+    setAiProbResults(null);
     ProbabilityService.clearCache();
-    
+
     window.history.replaceState(null, '', window.location.pathname);
   };
 
@@ -810,7 +550,6 @@ export default function TCGCalculator() {
     if (initialDeckZones) {
       setDeckZones(initialDeckZones);
       setYdkCardCounts(originalYdkCardCounts);
-      console.log('🔄 Reset: Restored original YDK deck zones and card counts');
     }
 
     setDeckSize(40);
@@ -823,8 +562,6 @@ export default function TCGCalculator() {
       handSize: 5,
       combos: []
     });
-    setEditingComboId(null);
-    setTempComboName('');
     setGeneratedTitle('');
     setShareableUrl('');
     setOpeningHand([]);
@@ -833,341 +570,12 @@ export default function TCGCalculator() {
     window.history.replaceState(null, '', window.location.pathname);
   };
 
-  const addCombo = () => {
-    if (combos.length < 10) {
-      const newId = Math.max(...combos.map(c => c.id)) + 1;
-      setCombos([...combos, createCombo(newId, combos.length)]);
-    }
-  };
-
-  const removeCombo = (id) => {
-    const newCombos = combos.filter(combo => combo.id !== id);
-    const updatedCombos = newCombos.map((combo, index) => ({
-      ...combo,
-      name: combo.name.startsWith('Combo ') ? `Combo ${index + 1}` : combo.name
-    }));
-    setCombos(updatedCombos);
-  };
-
-  // Validation functions for input constraints
-  const validateAndUpdateCombo = (id, cardIndex, field, value) => {
-    const combo = combos.find(c => c.id === id);
-    if (!combo) return;
-    
-    const currentCard = combo.cards[cardIndex];
-    const fieldPrefix = `combo-${id}-card-${cardIndex}-${field}`;
-    
-    // AC02: Prevent Max in hand from exceeding Copies in deck
-    if (field === 'maxCopiesInHand' && value > currentCard.startersInDeck) {
-      setErrors(prev => ({
-        ...prev,
-        [fieldPrefix]: "Can't be more than Copies in deck"
-      }));
-      return; // Prevent the update
-    }
-    
-    // AC03: Prevent Min in hand from exceeding Max in hand
-    if (field === 'minCopiesInHand' && value > currentCard.maxCopiesInHand) {
-      setErrors(prev => ({
-        ...prev,
-        [fieldPrefix]: "Can't be more than Max in hand"
-      }));
-      return; // Prevent the update
-    }
-    
-    // Clear any existing errors for this field since validation passed
-    setErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors[fieldPrefix];
-      return newErrors;
-    });
-    
-    // Apply the update using the existing updateCombo function
-    updateCombo(id, cardIndex, field, value);
-  };
-
-  const updateCombo = (id, cardIndex, field, value) => {
-    console.log(`🔄 updateCombo called: combo ${id}, card ${cardIndex}, field "${field}", value:`, value);
-    setCombos(prevCombos => prevCombos.map(combo => {
-      if (combo.id !== id) return combo;
-
-      const updatedCombo = { ...combo };
-      updatedCombo.cards = [...combo.cards];
-      const currentCard = combo.cards[cardIndex];
-
-      console.log('  📋 Current card state before update:', {
-        starterCard: currentCard.starterCard,
-        startersInDeck: currentCard.startersInDeck,
-        minCopiesInHand: currentCard.minCopiesInHand,
-        maxCopiesInHand: currentCard.maxCopiesInHand
-      });
-
-      if (field === 'starterCard' && typeof value === 'object') {
-        console.log('  🔧 Updating starterCard with object value');
-        updatedCombo.cards[cardIndex] = {
-          ...combo.cards[cardIndex],
-          starterCard: value.starterCard,
-          cardId: value.cardId,
-          isCustom: value.isCustom
-        };
-
-        // NEW: When adding a card from YDK, set copies in deck and max in hand
-        if (value.startersInDeck !== undefined) {
-          console.log(`  📦 Setting startersInDeck from ${currentCard.startersInDeck} to ${value.startersInDeck}`);
-          updatedCombo.cards[cardIndex].startersInDeck = value.startersInDeck;
-
-          // When selecting from YDK, always adjust Max in hand to match deck count
-          // This ensures YDK cards reflect actual deck composition
-          console.log(`  ✨ Auto-adjusting maxCopiesInHand from ${currentCard.maxCopiesInHand} to ${value.startersInDeck}`);
-          updatedCombo.cards[cardIndex].maxCopiesInHand = value.startersInDeck;
-
-          // Clear any errors for maxCopiesInHand since we auto-adjusted it
-          setErrors(prev => {
-            const newErrors = { ...prev };
-            delete newErrors[`combo-${id}-card-${cardIndex}-maxCopiesInHand`];
-            return newErrors;
-          });
-        }
-        if (value.maxCopiesInHand !== undefined) {
-          console.log(`  🎯 Explicitly setting maxCopiesInHand to ${value.maxCopiesInHand}`);
-          updatedCombo.cards[cardIndex].maxCopiesInHand = value.maxCopiesInHand;
-        }
-
-        console.log('  ✅ Card state after starterCard update:', {
-          starterCard: updatedCombo.cards[cardIndex].starterCard,
-          startersInDeck: updatedCombo.cards[cardIndex].startersInDeck,
-          minCopiesInHand: updatedCombo.cards[cardIndex].minCopiesInHand,
-          maxCopiesInHand: updatedCombo.cards[cardIndex].maxCopiesInHand
-        });
-      } else {
-        updatedCombo.cards[cardIndex] = { ...combo.cards[cardIndex], [field]: value };
-      }
-
-      // Apply automatic adjustment logic based on acceptance criteria
-      const card = updatedCombo.cards[cardIndex];
-
-      // Auto-adjust Max in hand when Copies in deck changes (unless user manually set Max)
-      if (field === 'startersInDeck') {
-        // Only auto-adjust if Max in hand currently equals the old Copies in deck
-        // (meaning user hasn't manually customized Max in hand)
-        if (currentCard.maxCopiesInHand === currentCard.startersInDeck) {
-          card.maxCopiesInHand = value;
-          console.log(`  ✨ Auto-adjusting maxCopiesInHand from ${currentCard.maxCopiesInHand} to ${value}`);
-          // Clear any errors for maxCopiesInHand since we auto-adjusted it
-          setErrors(prev => {
-            const newErrors = { ...prev };
-            delete newErrors[`combo-${id}-card-${cardIndex}-maxCopiesInHand`];
-            return newErrors;
-          });
-        }
-        // Also adjust if new value is less than current max (to prevent validation errors)
-        else if (value < currentCard.maxCopiesInHand) {
-          card.maxCopiesInHand = value;
-          console.log(`  ⚠️ Capping maxCopiesInHand to ${value} (can't exceed deck count)`);
-          setErrors(prev => {
-            const newErrors = { ...prev };
-            delete newErrors[`combo-${id}-card-${cardIndex}-maxCopiesInHand`];
-            return newErrors;
-          });
-        }
-      }
-
-      // AC07: Auto-adjust Min in hand when Max in hand decreases
-      if (field === 'maxCopiesInHand' && value < currentCard.minCopiesInHand) {
-        if (currentCard.minCopiesInHand === currentCard.maxCopiesInHand) {
-          card.minCopiesInHand = value;
-          // Clear any errors for minCopiesInHand since we auto-adjusted it
-          setErrors(prev => {
-            const newErrors = { ...prev };
-            delete newErrors[`combo-${id}-card-${cardIndex}-minCopiesInHand`];
-            return newErrors;
-          });
-        }
-      }
-
-      // Legacy logic: ensure min doesn't exceed max
-      if (field === 'minCopiesInHand' && value > currentCard.maxCopiesInHand) {
-        card.maxCopiesInHand = value;
-      }
-
-      console.log('🔄 Final updated combo:', updatedCombo);
-      return updatedCombo;
-    }));
-  };
-
-  const updateComboProperty = (id, field, value) => {
-    setCombos(combos.map(combo => {
-      if (combo.id !== id) return combo;
-      return { ...combo, [field]: value };
-    }));
-  };
-
-  const addCard = (comboId) => {
-    setCombos(combos.map(combo => {
-      if (combo.id !== comboId) return combo;
-      
-      return {
-        ...combo,
-        cards: [
-          ...combo.cards,
-          {
-            starterCard: '',
-            cardId: null,
-            isCustom: false,
-            startersInDeck: 3,
-            minCopiesInHand: 1,
-            maxCopiesInHand: 3,
-            logicOperator: 'AND'  // Default to AND
-          }
-        ]
-      };
-    }));
-  };
-
-  const removeSecondCard = (comboId) => {
-    setCombos(combos.map(combo => {
-      if (combo.id !== comboId) return combo;
-      
-      return {
-        ...combo,
-        cards: [combo.cards[0]]
-      };
-    }));
-  };
-
-  // AC #6: Remove specific card from combo
-  const removeCard = (comboId, cardIndex) => {
-    setCombos(combos.map(combo => {
-      if (combo.id !== comboId) return combo;
-      
-      const newCards = combo.cards.filter((_, index) => index !== cardIndex);
-      
-      // Ensure at least one card remains
-      if (newCards.length === 0) {
-        return {
-          ...combo,
-          cards: [{
-            starterCard: '',
-            cardId: null,
-            isCustom: false,
-            startersInDeck: 3,
-            minCopiesInHand: 1,
-            maxCopiesInHand: 3,
-            logicOperator: 'AND'
-          }]
-        };
-      }
-      
-      return { ...combo, cards: newCards };
-    }));
-  };
-
-  // Check if adding a card would exceed hand size
-  const canAddCard = (combo) => {
-    if (!combo || !combo.cards) return false;
-    const currentMinSum = combo.cards.reduce((sum, card) => sum + (card.minCopiesInHand || 0), 0);
-    return currentMinSum + 1 <= handSize; // +1 for the new card's default min (1)
-  };
-
-  // AC #7: Get the highest min in hand sum across all combos
-  const getHighestMinInHandSum = () => {
-    if (!combos || combos.length === 0) return 1;
-    const sums = combos.map(combo => 
-      combo.cards.reduce((sum, card) => sum + (card.minCopiesInHand || 0), 0)
-    );
-    return Math.max(1, ...sums);
-  };
-
-
-  const startEditingComboName = (combo) => {
-    setEditingComboId(combo.id);
-    setTempComboName(combo.name);
-    setErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors[`combo-${combo.id}-name`];
-      return newErrors;
-    });
-  };
-
-  const handleComboNameChange = (e) => {
-    const value = e.target.value;
-    
-    if (value.length > 50) return;
-    
-    const isValid = /^[a-zA-Z0-9 ]*$/.test(value);
-    
-    if (!isValid && value !== '') {
-      setErrors(prev => ({
-        ...prev,
-        [`combo-${editingComboId}-name`]: 'Only alphanumeric characters allowed'
-      }));
-    } else {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[`combo-${editingComboId}-name`];
-        return newErrors;
-      });
-    }
-    
-    setTempComboName(value);
-  };
-
-  const saveComboName = () => {
-    if (!editingComboId) return;
-    
-    const comboIndex = combos.findIndex(c => c.id === editingComboId);
-    let finalName = tempComboName.trim();
-    
-    if (finalName === '') {
-      finalName = `Combo ${comboIndex + 1}`;
-    }
-    
-    const isDuplicate = combos.some(combo => 
-      combo.id !== editingComboId && combo.name === finalName
-    );
-    
-    if (isDuplicate) {
-      setErrors(prev => ({
-        ...prev,
-        [`combo-${editingComboId}-name`]: 'Combo name must be unique'
-      }));
-      return;
-    }
-    
-    const isValid = /^[a-zA-Z0-9 ]*$/.test(finalName);
-    if (isValid) {
-      updateComboProperty(editingComboId, 'name', finalName);
-      setEditingComboId(null);
-      setTempComboName('');
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[`combo-${editingComboId}-name`];
-        return newErrors;
-      });
-    }
-  };
-
-  const handleComboNameKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      saveComboName();
-    }
-  };
-
-  const showToast = (message) => {
-    setToastMessage(message);
-    setTimeout(() => setToastMessage(''), 2000); // Hide after 2 seconds
-  };
-
   const handleCopyLink = () => {
     if (!toastMessage) { // Prevent multiple toasts
       navigator.clipboard.writeText(shareableUrl);
       showToast('Link copied!');
     }
   };
-
-useEffect(() => {
-  ProbabilityService.clearCache();
-}, [deckSize, handSize]);
 
   useEffect(() => {
     ProbabilityService.clearCache();
@@ -1180,11 +588,6 @@ useEffect(() => {
   useEffect(() => {
     generateOpeningHand();
   }, [deckSize, handSize, combos, testHandFromDecklist, ydkCards, ydkCardCounts]);
-
-  // Debug when opening hand state actually changes
-  useEffect(() => {
-    console.log('🔄 Opening hand state updated:', openingHand);
-  }, [openingHand]);
 
   // AC#5 & AC#6: Auto-disable toggle when non-decklist cards are used
   useEffect(() => {
@@ -1204,11 +607,8 @@ useEffect(() => {
       })
     );
 
-    console.log('🔍 Checking cards against decklist:', { hasNonDecklistCards, combos: combos.length });
-
     // AC#5: Turn toggle OFF if non-decklist cards are found
     if (hasNonDecklistCards && testHandFromDecklist) {
-      console.log('🚫 Non-decklist cards detected, turning toggle OFF');
       setTestHandFromDecklist(false);
     }
   }, [combos, ydkCards, testHandFromDecklist]);
@@ -1333,6 +733,8 @@ useEffect(() => {
             initialDeckZones={initialDeckZones}
             typography={typography}
             onEnginesRecognized={handleEnginesRecognized}
+            onDeckReady={handleDeckReady}
+            onUnknownDeck={handleUnknownDeck}
           />
 
           {/* Defined combos — collapses to a drawer when more than 1 combo is defined */}
@@ -1594,6 +996,7 @@ useEffect(() => {
           )}
         </AnimatePresence>
       </div>
+
     </div>
   );
 };

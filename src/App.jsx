@@ -265,34 +265,32 @@ export default function TCGCalculator() {
         setDeckSize(urlData.deckSize);
         setHandSize(urlData.handSize);
         setCombos(urlData.combos);
-        
+
+        // Hold freshly parsed card data so the setTimeout closure uses current values
+        let restoredUniqueCards = [];
+        let restoredCardCounts = {};
+
         // Restore YDK file if present
         if (urlData.ydkFile && staticCardDatabase && Object.keys(staticCardDatabase).length > 0) {
           try {
             const parseResult = YdkParser.parseYdkFile(urlData.ydkFile.content, staticCardDatabase);
 
             // Get unique card names (remove duplicates)
-            const uniqueCards = [];
             const seenNames = new Set();
-
             parseResult.cards.forEach(card => {
               if (!seenNames.has(card.name)) {
                 seenNames.add(card.name);
-                uniqueCards.push({
-                  name: card.name,
-                  id: card.id,
-                  isCustom: false
-                });
+                restoredUniqueCards.push({ name: card.name, id: card.id, isCustom: false });
               }
             });
+            restoredCardCounts = parseResult.cardCounts;
 
             // Update deck size to match YDK file main deck card count
-            const mainDeckCardCount = parseResult.cards.length;
-            setDeckSize(mainDeckCardCount);
+            setDeckSize(parseResult.cards.length);
 
             setUploadedYdkFile(urlData.ydkFile);
-            setYdkCards(uniqueCards);
-            setYdkCardCounts(parseResult.cardCounts);
+            setYdkCards(restoredUniqueCards);
+            setYdkCardCounts(restoredCardCounts);
 
             // Show error only for truly unmatched cards
             if (parseResult.unmatchedIds.length > 0) {
@@ -308,17 +306,24 @@ export default function TCGCalculator() {
           setDeckZones(urlData.deckZones);
           setInitialDeckZones(urlData.deckZones);
         }
-        
+
         setTimeout(() => {
-          const calculatedResults = ProbabilityService.calculateMultipleCombos(urlData.combos, urlData.deckSize, urlData.handSize, ydkCards, ydkCardCounts);
+          // Use freshly parsed card data (not stale closure values from state)
+          const calculatedResults = ProbabilityService.calculateMultipleCombos(
+            urlData.combos, urlData.deckSize, urlData.handSize, restoredUniqueCards, restoredCardCounts
+          );
           setResults(calculatedResults);
           setDashboardValues({
             deckSize: urlData.deckSize,
             handSize: urlData.handSize,
             combos: urlData.combos.map(c => ({ ...c }))
           });
+          // FDGG-45: generate title and populate shareable URL so the link section renders
+          const title = TitleGeneratorService.generateFunTitle(urlData.combos, urlData.deckSize, calculatedResults.individual);
+          setGeneratedTitle(title);
+          setShareableUrl(window.location.href);
           setIsRestoringFromURL(false);
-          
+
           // Auto-scroll to Calculation Dashboard
           setTimeout(() => scrollToCalculationDashboard(), 800);
         }, 100);

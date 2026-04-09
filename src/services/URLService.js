@@ -150,7 +150,21 @@ const URLService = {
   },
 
   updateURL: (deckSize, handSize, combos, ydkFile = null, testHandFromDecklist = true, deckZones = null) => {
-    const encoded = URLService.encodeCalculation(deckSize, handSize, combos, ydkFile, testHandFromDecklist, deckZones);
+    // Try encoding with full data; fall back gracefully if the hash grows too large
+    let encoded = URLService.encodeCalculation(deckSize, handSize, combos, ydkFile, testHandFromDecklist, deckZones);
+
+    // > 150 KB of base64 hash is unusual — try without the raw YDK text first
+    if (encoded && encoded.length > 150000) {
+      console.warn('[URLService] URL hash too large with YDK content; omitting raw YDK file.');
+      encoded = URLService.encodeCalculation(deckSize, handSize, combos, null, testHandFromDecklist, deckZones);
+    }
+
+    // Still too large — drop deck zones as well (combos always remain)
+    if (encoded && encoded.length > 150000) {
+      console.warn('[URLService] URL hash still too large; omitting deck zones.');
+      encoded = URLService.encodeCalculation(deckSize, handSize, combos, null, testHandFromDecklist, null);
+    }
+
     if (encoded) {
       window.history.replaceState(null, '', `#calc=${encoded}`);
     }

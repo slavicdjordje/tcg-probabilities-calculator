@@ -110,4 +110,4 @@ const ComboForm = ({
   );
 };
 
-export default ComboForm;
+export default React.memo(ComboForm);

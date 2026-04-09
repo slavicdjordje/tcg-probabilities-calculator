@@ -85,4 +85,4 @@ const DeckZone = ({
   );
 };
 
-export default DeckZone;
+export default React.memo(DeckZone);

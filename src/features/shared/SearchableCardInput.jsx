@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import HandTrapService from '../../services/HandTrapService';
 import Icon from '../../components/Icon';
 import { Button } from '../../components/ui';
@@ -130,62 +130,7 @@ const SearchableCardInput = ({
     return () => clearTimeout(debounceTimerRef.current);
   }, [searchTerm, cardDatabase, ydkCards]);
   
-  const handleInputClick = () => {
-    setIsOpen(true);
-    if (value && !isEditing) {
-      handleEdit();
-    }
-  };
-  
-  const handleInputChange = (e) => {
-    setSearchTerm(e.target.value);
-    if (!isOpen) setIsOpen(true);
-  };
-  
-  const handleCardSelect = (card) => {
-    // Check if this is a YDK card and get the actual copy count
-    const cardCount = ydkCardCounts && ydkCardCounts[card.name] ? ydkCardCounts[card.name] : undefined;
-
-    // Build the update object with card info
-    const updateData = {
-      starterCard: card.name,
-      cardId: card.id,
-      isCustom: card.isCustom
-    };
-
-    // If this is a YDK card, include the copies in deck
-    // Note: maxCopiesInHand will be auto-adjusted by updateCombo logic if needed
-    if (cardCount !== undefined) {
-      updateData.startersInDeck = cardCount;
-    }
-
-    // Update the card with all data at once
-    onChange(updateData);
-
-    // Close dropdown and clear search - let useEffect handle isEditing
-    setSearchTerm('');
-    setIsOpen(false);
-  };
-  
-  const handleCustomName = () => {
-    handleCardSelect({
-      name: searchTerm,
-      id: null,
-      isCustom: true
-    });
-  };
-  
-  const handleClear = () => {
-    onChange({
-      starterCard: '',
-      cardId: null,
-      isCustom: false
-    });
-    setSearchTerm('');
-    setIsEditing(true);
-  };
-  
-  const handleEdit = () => {
+  const handleEdit = useCallback(() => {
     setSearchTerm(value);
     setIsEditing(true);
     setIsOpen(true);
@@ -194,7 +139,52 @@ const SearchableCardInput = ({
         inputRef.current.focus();
       }
     });
-  };
+  }, [value]);
+
+  const handleInputClick = useCallback(() => {
+    setIsOpen(true);
+    if (value && !isEditing) {
+      handleEdit();
+    }
+  }, [value, isEditing, handleEdit]);
+
+  const handleInputChange = useCallback((e) => {
+    setSearchTerm(e.target.value);
+    if (!isOpen) setIsOpen(true);
+  }, [isOpen]);
+
+  const handleCardSelect = useCallback((card) => {
+    const cardCount = ydkCardCounts && ydkCardCounts[card.name] ? ydkCardCounts[card.name] : undefined;
+    const updateData = {
+      starterCard: card.name,
+      cardId: card.id,
+      isCustom: card.isCustom
+    };
+    if (cardCount !== undefined) {
+      updateData.startersInDeck = cardCount;
+    }
+    onChange(updateData);
+    setSearchTerm('');
+    setIsOpen(false);
+  }, [ydkCardCounts, onChange]);
+
+  const handleCustomName = useCallback(() => {
+    handleCardSelect({
+      name: searchTerm,
+      id: null,
+      isCustom: true
+    });
+  }, [handleCardSelect, searchTerm]);
+
+  const handleClear = useCallback(() => {
+    onChange({
+      starterCard: '',
+      cardId: null,
+      isCustom: false
+    });
+    setSearchTerm('');
+    setIsEditing(true);
+  }, [onChange]);
   
   return (
     <div ref={dropdownRef} style={{ position: 'relative', width: '100%', minWidth: 0 }}>

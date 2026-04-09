@@ -12,6 +12,7 @@ import useToast from './hooks/useToast';
 import useOpeningHand from './hooks/useOpeningHand';
 import useErrors from './hooks/useErrors';
 import useComboHandlers from './hooks/useComboHandlers';
+import useEngineRecognition from './hooks/useEngineRecognition';
 
 // Service imports
 import ProbabilityService from './services/ProbabilityService';
@@ -38,10 +39,18 @@ import { createCombo } from './utils/comboFactory';
 
 // Additional service imports
 import OpeningHandService from './services/OpeningHandService';
+import PieceGroupConfirmationModal from './features/inference/PieceGroupConfirmationModal';
+import PartialMatchModal from './features/combo/PartialMatchModal';
+import DuelingBookLogModal from './features/duelingbook/DuelingBookLogModal';
+import UnknownDeckPromptModal from './features/deck-import/UnknownDeckPromptModal';
+import UserFeedbackStorageService from './services/UserFeedbackStorageService';
+import PromotionService from './services/PromotionService';
 
 // Additional component imports
 import SearchableCardInput from './features/shared/SearchableCardInput';
 import { Toast } from './components/ui';
+import ComboSequenceDisplay from './features/combo/ComboSequenceDisplay';
+import AIAnalysisPanel from './features/ai-analysis/AIAnalysisPanel';
 
 export default function TCGCalculator() {
   // Custom Hooks
@@ -188,14 +197,49 @@ export default function TCGCalculator() {
     }, 100);
   };
 
-  // Engine recognition — simple inline handlers (combo sequences feature not included in this build)
-  const handleEnginesRecognized = (recognizedCombos, cardCounts, uniqueCards, newDeckSize) => {
-    setCombos(recognizedCombos);
-    setDeckSize(newDeckSize);
-    runAutoCalculate(recognizedCombos, cardCounts, uniqueCards, newDeckSize);
-  };
-  const handleDeckReady = () => {};
-  const handleUnknownDeck = () => {};
+  // DuelingBook log import modal state (FDGG-24)
+  const [isDuelingBookModalOpen, setIsDuelingBookModalOpen] = useState(false);
+
+  // Track whether the DuelingBook modal was opened from the contribute flow
+  const [isDuelingBookContribution, setIsDuelingBookContribution] = useState(false);
+
+  // Engine recognition hook
+  const {
+    pieceGroupModal,
+    setPieceGroupModal,
+    partialMatchModal,
+    setPartialMatchModal,
+    unknownDeckPrompt,
+    setUnknownDeckPrompt,
+    sequenceDisplay,
+    setSequenceDisplay,
+    aiAnalysis,
+    setAiAnalysis,
+    aiProbResults,
+    setAiProbResults,
+    isValidatingLog,
+    archetypeResult,
+    handleEnginesRecognized,
+    handleDeckReady,
+    handleUnknownDeck,
+    handlePieceGroupConfirm,
+    handleSequenceCorrected,
+  } = useEngineRecognition({
+    cardDatabase,
+    deckZones,
+    ydkCardCounts,
+    ydkCards,
+    deckSize,
+    handSize,
+    setCombos,
+    setResults,
+    setDashboardValues,
+    setGeneratedTitle,
+    setDeckSize,
+    showToast,
+    scrollToCalculationDashboard,
+    runAutoCalculate,
+  });
 
   // Restore calculation from URL on mount
   useEffect(() => {
@@ -737,6 +781,57 @@ export default function TCGCalculator() {
             onUnknownDeck={handleUnknownDeck}
           />
 
+          {/* Recognized archetype badge — shown after YDK upload when archetype is identified */}
+          {archetypeResult && (archetypeResult.type === 'single' || archetypeResult.type === 'hybrid') && (
+            <div style={{ marginTop: '8px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '3px 10px',
+                borderRadius: '999px',
+                border: '1px solid #444',
+                backgroundColor: '#1a1a1a',
+                color: '#ccc',
+                fontFamily: 'Geist, sans-serif',
+                fontSize: '12px',
+              }}>
+                <span style={{ color: '#888', fontSize: '11px' }}>Detected</span>
+                <span style={{ color: '#eee', fontWeight: 500 }}>{archetypeResult.archetype.name}</span>
+                {archetypeResult.confidence != null && (
+                  <>
+                    <span style={{ color: '#555' }}>·</span>
+                    <span style={{ color: '#666', fontSize: '11px' }}>{Math.round(archetypeResult.confidence * 100)}%</span>
+                  </>
+                )}
+              </span>
+            </div>
+          )}
+
+          {/* DuelingBook log import (FDGG-24) */}
+          <div style={{ marginTop: '8px', marginBottom: '24px' }}>
+            <button
+              onClick={() => setIsDuelingBookModalOpen(true)}
+              style={{
+                height: '36px',
+                padding: '0 16px',
+                borderRadius: '8px',
+                border: '1px solid #333',
+                backgroundColor: 'transparent',
+                color: '#aaa',
+                fontFamily: 'Geist, sans-serif',
+                fontSize: '13px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <span style={{ fontSize: '14px', lineHeight: 1 }}>⬇</span>
+              Import game log
+            </button>
+          </div>
+
           {/* Defined combos — collapses to a drawer when more than 1 combo is defined */}
           {combos.length <= 1 ? (
             <>
@@ -895,6 +990,37 @@ export default function TCGCalculator() {
           </div>
         </div>
 
+        {/* AI combo analysis panel — shown for unknown decks */}
+        {aiAnalysis && (
+          <AIAnalysisPanel
+            isLoading={aiAnalysis.isLoading}
+            error={aiAnalysis.error}
+            result={aiAnalysis.result}
+            probResults={aiProbResults}
+            onRetry={() => {
+              if (ydkCardCounts && Object.keys(ydkCardCounts).length > 0) {
+                handleDeckReady(ydkCardCounts, ydkCards, deckSize, false);
+              }
+            }}
+            onDismiss={() => { setAiAnalysis(null); setAiProbResults(null); }}
+          />
+        )}
+
+        {/* Combo sequence display (FDGG-23) */}
+        {sequenceDisplay && (
+          <div style={{ marginBottom: '24px' }}>
+            <ComboSequenceDisplay
+              sequence={sequenceDisplay.sequence}
+              delta={sequenceDisplay.delta}
+              showMissingCards={sequenceDisplay.showMissingCards ?? false}
+              logMapping={sequenceDisplay.logMapping ?? null}
+              isValidatingLog={isValidatingLog}
+              onSequenceCorrected={handleSequenceCorrected}
+              onClose={() => setSequenceDisplay(null)}
+            />
+          </div>
+        )}
+
         <div ref={calculationDashboardRef}>
           <ResultsDisplay
             results={results}
@@ -997,6 +1123,94 @@ export default function TCGCalculator() {
         </AnimatePresence>
       </div>
 
+      {/* Piece-group confirmation modal (FDGG-21) */}
+      {pieceGroupModal && (
+        <PieceGroupConfirmationModal
+          sequence={pieceGroupModal.sequence}
+          inferenceResult={pieceGroupModal.inferenceResult}
+          isLoading={pieceGroupModal.isLoading}
+          onConfirm={handlePieceGroupConfirm}
+          onCancel={() => {
+            const { recognizedCombos, cardCounts, uniqueCards, newDeckSize } = pieceGroupModal;
+            setPieceGroupModal(null);
+            runAutoCalculate(recognizedCombos, cardCounts, uniqueCards, newDeckSize);
+          }}
+        />
+      )}
+
+      {/* Partial match modal (FDGG-42) */}
+      {partialMatchModal && (
+        <PartialMatchModal
+          missingCards={partialMatchModal.missingCards}
+          onShowMissing={() => {
+            setSequenceDisplay({
+              sequence: partialMatchModal.sequence,
+              delta:    partialMatchModal.delta,
+              showMissingCards: true,
+            });
+            setPartialMatchModal(null);
+          }}
+          onSkip={() => setPartialMatchModal(null)}
+        />
+      )}
+
+      {/* DuelingBook log import modal (FDGG-24 / FDGG-27) */}
+      {isDuelingBookModalOpen && (
+        <DuelingBookLogModal
+          onClose={() => {
+            setIsDuelingBookModalOpen(false);
+            setIsDuelingBookContribution(false);
+          }}
+          onSubmit={(record) => {
+            setIsDuelingBookModalOpen(false);
+            const meaningfulActions = record.actions.filter(
+              a => a.actionType !== 'turn-marker' && a.actionType !== 'phase-change' && a.actionType !== 'other'
+            );
+            const actionCount = meaningfulActions.length;
+            if (isDuelingBookContribution) {
+              setIsDuelingBookContribution(false);
+              const rawActionStrings = meaningfulActions.map(a => a.rawLine);
+              const submitResult = UserFeedbackStorageService.submit({
+                deckCardCounts:          ydkCardCounts,
+                archetypeResult,
+                mappedSteps:             rawActionStrings,
+                validatedActionSequence: rawActionStrings,
+              });
+              const promotionResult = PromotionService.evaluate({
+                submitResult,
+                mappedSteps: rawActionStrings,
+              });
+              if (promotionResult.outcome === 'promoted' && promotionResult.type === 'new-archetype') {
+                showToast(`New archetype "${promotionResult.archetype.name}" validated by the community!`);
+              } else if (promotionResult.outcome === 'promoted' && promotionResult.type === 'variant') {
+                showToast('Sequence validated — promoted as a new community variant!');
+              } else if (promotionResult.outcome === 'threshold-not-met') {
+                showToast(
+                  `Log contributed (${promotionResult.agreementCount}/${promotionResult.threshold} agreements needed)`
+                );
+              } else if (promotionResult.outcome === 'not-stored') {
+                showToast(`Log contributed — ${actionCount} action${actionCount !== 1 ? 's' : ''} saved`);
+              }
+            } else {
+              showToast(`Imported ${actionCount} game action${actionCount !== 1 ? 's' : ''}`);
+            }
+          }}
+        />
+      )}
+
+      {/* Unknown-deck contribution prompt (FDGG-27) */}
+      {unknownDeckPrompt && (
+        <UnknownDeckPromptModal
+          deckHash={unknownDeckPrompt.deckHash}
+          archetypeScores={unknownDeckPrompt.archetypeScores}
+          onContribute={() => {
+            setUnknownDeckPrompt(null);
+            setIsDuelingBookContribution(true);
+            setIsDuelingBookModalOpen(true);
+          }}
+          onDecline={() => setUnknownDeckPrompt(null)}
+        />
+      )}
     </div>
   );
 };

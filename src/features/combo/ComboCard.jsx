@@ -232,4 +232,4 @@ const ComboCard = ({
   );
 };
 
-export default ComboCard;
+export default React.memo(ComboCard);

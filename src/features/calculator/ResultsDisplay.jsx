@@ -658,4 +658,4 @@ const ResultsDisplay = ({
   );
 };
 
-export default ResultsDisplay;
+export default React.memo(ResultsDisplay);

@@ -47347,6 +47347,13 @@
     "attribute": null,
     "isExtraDeck": false
   },
+  "46985799": {
+    "name": "Black Rose Dragon/Assault Mode",
+    "type": "Effect Monster",
+    "level": 9,
+    "attribute": "FIRE",
+    "isExtraDeck": false
+  },
   "46986414": {
     "name": "Dark Magician",
     "type": "Normal Monster",
@@ -81892,6 +81899,13 @@
     "attribute": "DARK",
     "isExtraDeck": false
   },
+  "82370493": {
+    "name": "Predaplant Dheadevil",
+    "type": "Fusion Monster",
+    "level": 6,
+    "attribute": "DARK",
+    "isExtraDeck": true
+  },
   "82377606": {
     "name": "Ally of Justice Unlimiter",
     "type": "Effect Monster",
@@ -98573,6 +98587,13 @@
     "attribute": null,
     "isExtraDeck": false
   },
+  "100200289": {
+    "name": "Ilios the Black Sun Dragon",
+    "type": "Effect Monster",
+    "level": null,
+    "attribute": null,
+    "isExtraDeck": false
+  },
   "100295121": {
     "name": "Clown Clan Hat",
     "type": "Pendulum Effect Monster",
@@ -98804,6 +98825,13 @@
     "attribute": "DARK",
     "isExtraDeck": true
   },
+  "101305035": {
+    "name": "June Pride - Elfnotes",
+    "type": "Synchro Monster",
+    "level": 10,
+    "attribute": "LIGHT",
+    "isExtraDeck": true
+  },
   "101305036": {
     "name": "Glitch Clutch Nullgainer",
     "type": "Synchro Monster",
@@ -98815,6 +98843,13 @@
     "name": "The Phantom Knights of Malevolent Scythe",
     "type": "XYZ Monster",
     "level": 3,
+    "attribute": "DARK",
+    "isExtraDeck": true
+  },
+  "101305039": {
+    "name": "Power Patron Envoy of Pure Prayers",
+    "type": "Link Monster",
+    "level": null,
     "attribute": "DARK",
     "isExtraDeck": true
   },
@@ -98895,6 +98930,20 @@
     "attribute": null,
     "isExtraDeck": false
   },
+  "101305055": {
+    "name": "Dead-End Power Patron Realm - Viraia",
+    "type": "Spell Card",
+    "level": null,
+    "attribute": null,
+    "isExtraDeck": false
+  },
+  "101305056": {
+    "name": "Pasto-Ral Theorealize",
+    "type": "Spell Card",
+    "level": null,
+    "attribute": null,
+    "isExtraDeck": false
+  },
   "101305057": {
     "name": "The Phantom Knights' Rank-Up-Magic Requiem",
     "type": "Spell Card",
@@ -98904,6 +98953,13 @@
   },
   "101305060": {
     "name": "Spiritual Power Recovery Potion",
+    "type": "Spell Card",
+    "level": null,
+    "attribute": null,
+    "isExtraDeck": false
+  },
+  "101305063": {
+    "name": "Plasma Blast",
     "type": "Spell Card",
     "level": null,
     "attribute": null,
@@ -98951,6 +99007,20 @@
     "attribute": null,
     "isExtraDeck": false
   },
+  "101305071": {
+    "name": "Power Patron Shadows of the End Times",
+    "type": "Trap Card",
+    "level": null,
+    "attribute": null,
+    "isExtraDeck": false
+  },
+  "101305072": {
+    "name": "Elfnotes: Quatrain of Succession",
+    "type": "Trap Card",
+    "level": null,
+    "attribute": null,
+    "isExtraDeck": false
+  },
   "101305073": {
     "name": "The Phantom Knights of Umbrage Veil",
     "type": "Trap Card",
@@ -98965,8 +99035,22 @@
     "attribute": null,
     "isExtraDeck": false
   },
+  "101305077": {
+    "name": "Oh my Trap Hole!",
+    "type": "Trap Card",
+    "level": null,
+    "attribute": null,
+    "isExtraDeck": false
+  },
   "101305078": {
     "name": "Lane Restriction",
+    "type": "Trap Card",
+    "level": null,
+    "attribute": null,
+    "isExtraDeck": false
+  },
+  "101305080": {
+    "name": "Protective Stone Gardenscaping",
     "type": "Trap Card",
     "level": null,
     "attribute": null,

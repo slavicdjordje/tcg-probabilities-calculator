@@ -37,6 +37,10 @@ const DeckConfigInputs = ({
 
   // Engine recognition callback
   onEnginesRecognized,
+  // AI analysis callback
+  onDeckReady,
+  // Unknown-deck callback
+  onUnknownDeck,
 }) => {
   return (
     <>
@@ -59,6 +63,8 @@ const DeckConfigInputs = ({
         deckZones={deckZones}
         setDeckZones={setDeckZones}
         onEnginesRecognized={onEnginesRecognized}
+        onDeckReady={onDeckReady}
+        onUnknownDeck={onUnknownDeck}
       />
 
       {/* Deck Builder Section */}

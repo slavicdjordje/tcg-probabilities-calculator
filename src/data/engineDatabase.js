@@ -259,8 +259,15 @@ export const ENGINE_DATABASE = [
     ],
   },
 
-  // ── Swordsoul / Tenyi (hidden until ready) ───────────────────────────────
-  /* {
+  // ── Swordsoul / Tenyi (Post-SUDA) ────────────────────────────────────────
+  // SUDA additions: Tenyi Spirit - Suruya (already present), Tenyi Spirit - Mula Adhara (Extra Deck),
+  // Tenyinfinity (Field Spell — searches Dragon Circle/Vessel, converts to Flawless Perfection).
+  // NO true 1-card starters: every combo requires at least 2 cards.
+  // Core 2-card lines: (1) Taia + Suruya → Baxia route, (2) Ashuna + Suruya → Mula Adhara route,
+  // (3) Mo Ye + Taia/Wyrm. Searchers (Emergence x3, Ecclesia x3, Circle x3, Vessel x1, Tenyinfinity)
+  // fetch the missing piece, making them functional openers when paired with a combo card.
+  // Longyuan is a mid-combo extender to reach Synchro 10 (not a starter).
+  {
     name: 'Swordsoul / Tenyi',
     identifierCards: [
       'Swordsoul of Mo Ye',
@@ -268,65 +275,90 @@ export const ENGINE_DATABASE = [
       'Swordsoul Emergence',
       'Heavenly Dragon Circle',
       'Vessel for the Dragon Cycle',
+      'Tenyi Spirit - Suruya',
+      'Tenyinfinity',
     ],
     comboTemplates: [
-      // ── 1-card starters ──
-      {
-        name: 'Swordsoul of Mo Ye',
-        cards: [{ name: 'Swordsoul of Mo Ye', minInHand: 1 }],
-      },
-      {
-        name: 'Swordsoul Strategist Longyuan',
-        cards: [{ name: 'Swordsoul Strategist Longyuan', minInHand: 1 }],
-      },
-      {
-        name: 'Incredible Ecclesia, the Virtuous',
-        cards: [{ name: 'Incredible Ecclesia, the Virtuous', minInHand: 1 }],
-      },
-      {
-        name: 'Swordsoul Emergence',
-        cards: [{ name: 'Swordsoul Emergence', minInHand: 1 }],
-      },
-      {
-        name: 'Heavenly Dragon Circle',
-        cards: [{ name: 'Heavenly Dragon Circle', minInHand: 1 }],
-      },
-      {
-        name: 'Vessel for the Dragon Cycle',
-        cards: [{ name: 'Vessel for the Dragon Cycle', minInHand: 1 }],
-      },
-      {
-        name: 'Tenyi Spirit - Ashuna',
-        cards: [{ name: 'Tenyi Spirit - Ashuna', minInHand: 1 }],
-      },
-      {
-        name: 'Tenyi Spirit - Shthana',
-        cards: [{ name: 'Tenyi Spirit - Shthana', minInHand: 1 }],
-      },
-      {
-        name: 'Tenyi Spirit - Vishuda',
-        cards: [{ name: 'Tenyi Spirit - Vishuda', minInHand: 1 }],
-      },
       // ── 2-card combos ──
+      // Main line 1: Taia + Suruya → Baxia → Chaofeng + Chixiao + Protos
       {
-        name: 'Mo Ye + Ecclesia',
+        name: 'Taia + Suruya',
         cards: [
-          { name: 'Swordsoul of Mo Ye', minInHand: 1 },
-          { name: 'Incredible Ecclesia, the Virtuous', minInHand: 1 },
+          { name: 'Swordsoul of Taia', minInHand: 1 },
+          { name: 'Tenyi Spirit - Suruya', minInHand: 1 },
         ],
       },
+      // Main line 2: Ashuna + Suruya → Mula Adhara + Chixiao + Protos + Flawless Perfection
       {
-        name: 'Longyuan + Ecclesia',
-        cards: [
-          { name: 'Swordsoul Strategist Longyuan', minInHand: 1 },
-          { name: 'Incredible Ecclesia, the Virtuous', minInHand: 1 },
-        ],
-      },
-      {
-        name: 'Ashuna + Shthana',
+        name: 'Ashuna + Suruya',
         cards: [
           { name: 'Tenyi Spirit - Ashuna', minInHand: 1 },
-          { name: 'Tenyi Spirit - Shthana', minInHand: 1 },
+          { name: 'Tenyi Spirit - Suruya', minInHand: 1 },
+        ],
+      },
+      // Classic Mo Ye 2-card combo (Mo Ye reveals Taia → Token + Taia on field)
+      {
+        name: 'Mo Ye + Taia',
+        cards: [
+          { name: 'Swordsoul of Mo Ye', minInHand: 1 },
+          { name: 'Swordsoul of Taia', minInHand: 1 },
+        ],
+      },
+      // Searcher-enabled 2-card lines
+      {
+        name: 'Emergence + Suruya',
+        cards: [
+          { name: 'Swordsoul Emergence', minInHand: 1 },
+          { name: 'Tenyi Spirit - Suruya', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Emergence + Ashuna',
+        cards: [
+          { name: 'Swordsoul Emergence', minInHand: 1 },
+          { name: 'Tenyi Spirit - Ashuna', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Emergence + Taia',
+        cards: [
+          { name: 'Swordsoul Emergence', minInHand: 1 },
+          { name: 'Swordsoul of Taia', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Ecclesia + Suruya',
+        cards: [
+          { name: 'Incredible Ecclesia, the Virtuous', minInHand: 1 },
+          { name: 'Tenyi Spirit - Suruya', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Ecclesia + Ashuna',
+        cards: [
+          { name: 'Incredible Ecclesia, the Virtuous', minInHand: 1 },
+          { name: 'Tenyi Spirit - Ashuna', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Ecclesia + Taia',
+        cards: [
+          { name: 'Incredible Ecclesia, the Virtuous', minInHand: 1 },
+          { name: 'Swordsoul of Taia', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Circle + Suruya',
+        cards: [
+          { name: 'Heavenly Dragon Circle', minInHand: 1 },
+          { name: 'Tenyi Spirit - Suruya', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Circle + Ashuna',
+        cards: [
+          { name: 'Heavenly Dragon Circle', minInHand: 1 },
+          { name: 'Tenyi Spirit - Ashuna', minInHand: 1 },
         ],
       },
       {
@@ -337,39 +369,51 @@ export const ENGINE_DATABASE = [
         ],
       },
       {
-        name: 'Mo Ye + Taia',
+        name: 'Mo Ye + Suruya',
         cards: [
           { name: 'Swordsoul of Mo Ye', minInHand: 1 },
-          { name: 'Swordsoul of Taia', minInHand: 1 },
+          { name: 'Tenyi Spirit - Suruya', minInHand: 1 },
         ],
       },
       {
-        name: 'Emergence + Ecclesia',
+        name: 'Vessel + Suruya',
         cards: [
-          { name: 'Swordsoul Emergence', minInHand: 1 },
-          { name: 'Incredible Ecclesia, the Virtuous', minInHand: 1 },
+          { name: 'Vessel for the Dragon Cycle', minInHand: 1 },
+          { name: 'Tenyi Spirit - Suruya', minInHand: 1 },
         ],
       },
-      // ── 3-card combo ──
       {
-        name: 'Ashuna + Shthana + Adhara',
+        name: 'Tenyinfinity + Suruya',
+        cards: [
+          { name: 'Tenyinfinity', minInHand: 1 },
+          { name: 'Tenyi Spirit - Suruya', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Tenyinfinity + Ashuna',
+        cards: [
+          { name: 'Tenyinfinity', minInHand: 1 },
+          { name: 'Tenyi Spirit - Ashuna', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Ashuna + Shthana',
         cards: [
           { name: 'Tenyi Spirit - Ashuna', minInHand: 1 },
           { name: 'Tenyi Spirit - Shthana', minInHand: 1 },
-          { name: 'Tenyi Spirit - Adhara', minInHand: 1 },
         ],
       },
-      // ── Extenders ──
+      // ── 3-card combos ──
       {
-        name: 'Swordsoul of Taia',
-        cards: [{ name: 'Swordsoul of Taia', minInHand: 1 }],
-      },
-      {
-        name: 'Tenyi Spirit - Adhara',
-        cards: [{ name: 'Tenyi Spirit - Adhara', minInHand: 1 }],
+        name: 'Taia + Suruya + Ashuna',
+        cards: [
+          { name: 'Swordsoul of Taia', minInHand: 1 },
+          { name: 'Tenyi Spirit - Suruya', minInHand: 1 },
+          { name: 'Tenyi Spirit - Ashuna', minInHand: 1 },
+        ],
       },
     ],
-  }, */
+  },
 
   // ── Snake-Eye ────────────────────────────────────────────────────────────
   {
@@ -416,6 +460,144 @@ export const ENGINE_DATABASE = [
       {
         name: 'Gem-Knight Lazuli',
         cards: [{ name: 'Gem-Knight Lazuli', minInHand: 1 }],
+      },
+    ],
+  },
+
+  // ── Vanquish Soul / K9 ───────────────────────────────────────────────────
+  // VS combos are attribute-driven, not card-name-driven.
+  // The key recognition signal is the presence of Rock of the Vanquisher + a VS monster.
+  // All VS lines route through the FIRE+DARK hand gate (Sue's CP3).
+  {
+    name: 'Vanquish Soul K9',
+    identifierCards: [
+      'Rock of the Vanquisher',
+      'Vanquish Soul Razen',
+      'Vanquish Soul Hollie Sue',
+      'Vanquish Soul Dr. Mad Love',
+    ],
+    comboTemplates: [
+      // 2-card starters — standard lines
+      {
+        name: 'Razen + Stake Your Soul',
+        cards: [
+          { name: 'Vanquish Soul Razen', minInHand: 1 },
+          { name: 'Stake your Soul!',    minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Razen + DARK card (Borger)',
+        cards: [
+          { name: 'Vanquish Soul Razen',        minInHand: 1 },
+          { name: 'Vanquish Soul Heavy Borger', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Razen + Sue',
+        cards: [
+          { name: 'Vanquish Soul Razen',      minInHand: 1 },
+          { name: 'Vanquish Soul Hollie Sue', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Razen + Jiaolong',
+        cards: [
+          { name: 'Vanquish Soul Razen',    minInHand: 1 },
+          { name: 'Vanquish Soul Jiaolong', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Razen + Mad Love',
+        cards: [
+          { name: 'Vanquish Soul Razen',        minInHand: 1 },
+          { name: 'Vanquish Soul Dr. Mad Love', minInHand: 1 },
+        ],
+      },
+      {
+        name: 'Mad Love + FIRE card (Razen)',
+        cards: [
+          { name: 'Vanquish Soul Dr. Mad Love', minInHand: 1 },
+          { name: 'Vanquish Soul Razen',        minInHand: 1 },
+        ],
+      },
+      // 3-card K9 line
+      {
+        name: 'Mad Love + Sue + Jiaolong (K9)',
+        cards: [
+          { name: 'Vanquish Soul Dr. Mad Love', minInHand: 1 },
+          { name: 'Vanquish Soul Hollie Sue',   minInHand: 1 },
+          { name: 'Vanquish Soul Jiaolong',     minInHand: 1 },
+        ],
+      },
+      // 1-card starters
+      { name: 'Vanquish Soul Razen',        cards: [{ name: 'Vanquish Soul Razen',        minInHand: 1 }] },
+      { name: 'Vanquish Soul Dr. Mad Love', cards: [{ name: 'Vanquish Soul Dr. Mad Love', minInHand: 1 }] },
+      { name: 'Vanquish Soul Hollie Sue',   cards: [{ name: 'Vanquish Soul Hollie Sue',   minInHand: 1 }] },
+    ],
+  },
+
+  // ── Chimera ───────────────────────────────────────────────────────────────
+  {
+    name: 'Chimera',
+    identifierCards: [
+      'Gazelle the King of Mythical Claws',
+      'Mirror Swordknight',
+      'Chimera Fusion',
+      'Big-Winged Berfomet',
+      'Cornfield Coatl',
+    ],
+    comboTemplates: [
+      { name: 'Mirror Swordknight (1-card)',
+        cards: [{ name: 'Mirror Swordknight', minInHand: 1 }] },
+      { name: 'Gazelle + Mirror',
+        cards: [
+          { name: 'Gazelle the King of Mythical Claws', minInHand: 1 },
+          { name: 'Mirror Swordknight',                 minInHand: 1 },
+        ],
+      },
+      { name: 'Nightmare Apprentice + discard',
+        cards: [{ name: 'Nightmare Apprentice', minInHand: 1 }] },
+      { name: 'Gazelle + Chimera Fusion',
+        cards: [
+          { name: 'Gazelle the King of Mythical Claws', minInHand: 1 },
+          { name: 'Chimera Fusion',                     minInHand: 1 },
+        ],
+      },
+      { name: 'Gazelle the King of Mythical Claws',
+        cards: [{ name: 'Gazelle the King of Mythical Claws', minInHand: 1 }] },
+    ],
+  },
+
+  // ── Chimera Fiendsmith ────────────────────────────────────────────────────
+  {
+    name: 'Chimera Fiendsmith',
+    identifierCards: [
+      'Gazelle the King of Mythical Claws',
+      'Mirror Swordknight',
+      'Chimera Fusion',
+      'Evil HERO Sinister Necrom',
+      'Evil HERO Adusted Gold',
+    ],
+    comboTemplates: [
+      { name: 'Nightmare Apprentice + discard (FS)',
+        cards: [{ name: 'Nightmare Apprentice', minInHand: 1 }] },
+      { name: 'Gazelle + CF/Necrom + discard',
+        cards: [
+          { name: 'Gazelle the King of Mythical Claws', minInHand: 1 },
+          { name: 'Evil HERO Sinister Necrom',          minInHand: 1 },
+        ],
+      },
+      { name: 'Gazelle + Fiendsmith\'s Tract',
+        cards: [
+          { name: 'Gazelle the King of Mythical Claws', minInHand: 1 },
+          { name: "Fiendsmith's Tract",                 minInHand: 1 },
+        ],
+      },
+      { name: 'Gazelle + Fiend/Illusion + discard',
+        cards: [
+          { name: 'Gazelle the King of Mythical Claws', minInHand: 1 },
+          { name: 'Nightmare Apprentice',               minInHand: 1 },
+        ],
       },
     ],
   },

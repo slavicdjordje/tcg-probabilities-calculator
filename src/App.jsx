@@ -107,6 +107,11 @@ export default function TCGCalculator() {
   const refreshDebounceRef = useRef(null);
   const calculationDashboardRef = useRef(null);
 
+  // Refs to always hold the latest values for stale-closure-safe URL generation
+  const deckZonesRef = useRef(deckZones);
+  const uploadedYdkFileRef = useRef(uploadedYdkFile);
+  const testHandFromDecklistRef = useRef(testHandFromDecklist);
+
   // Combo handlers hook
   const {
     editingComboId,
@@ -140,6 +145,11 @@ export default function TCGCalculator() {
       });
     }
   }, [initialDeckZones]);
+
+  // Keep refs in sync with state so stale closures always read the latest values
+  useEffect(() => { deckZonesRef.current = deckZones; }, [deckZones]);
+  useEffect(() => { uploadedYdkFileRef.current = uploadedYdkFile; }, [uploadedYdkFile]);
+  useEffect(() => { testHandFromDecklistRef.current = testHandFromDecklist; }, [testHandFromDecklist]);
 
   // Scroll to Calculation Dashboard function
   // Uses a manual rAF loop to bypass prefers-reduced-motion suppression in
@@ -189,6 +199,11 @@ export default function TCGCalculator() {
         handSize,
         combos: combosToCalc.map(c => ({ ...c })),
       });
+
+      // FDGG-45: auto-populate shareable URL when engine recognition scrolls to results
+      URLService.updateURL(newDeckSize, handSize, combosToCalc, uploadedYdkFileRef.current, testHandFromDecklistRef.current, deckZonesRef.current);
+      setShareableUrl(window.location.href);
+
       const title = TitleGeneratorService.generateFunTitle(
         combosToCalc, newDeckSize, calculatedResults.individual
       );

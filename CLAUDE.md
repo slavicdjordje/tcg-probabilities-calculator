@@ -14,16 +14,20 @@ This is a single-page React application for calculating probabilities in Trading
 
 ### Core Components Structure
 
-- **App.jsx**: Contains the entire application as a single large component (1,765 lines)
+- **App.jsx**: Main application component (~1,600 lines); orchestrates hooks, services, and feature components
 - **main.jsx**: React app entry point with Vercel Analytics integration
 - **index.css**: Tailwind CSS imports and base styles
 
-### Key Services (all in App.jsx)
+### Key Services (`src/services/`)
 
 - **URLService**: Handles encoding/decoding calculation data to/from URL hash for shareable links
 - **CardDatabaseService**: Manages card metadata from Vercel Blob (primary) with YGOPro API fallback and 7-day localStorage cache
 - **ProbabilityService**: Monte Carlo simulation engine (100,000 simulations per calculation) with result caching
 - **TitleGeneratorService**: Generates fun, contextual titles for calculation results
+- **HandTrapService**: Identifies hand-trap cards via pattern matching against card descriptions and a hardcoded known-cards list
+- **YdkParser**: Parses `.ydk` files into card name/count maps; uses `/public/cardDatabase.json` for offline ID→name resolution
+- **OpeningHandService**: Generates opening hands for visual testing — Fisher-Yates shuffle over a constructed deck, with a YDK-specific variant
+- **ComboRecognitionService**: Detects known engines in an uploaded deck and builds pre-populated combo state objects; reads from `src/data/engineDatabase.js`
 
 ### Data Flow
 
@@ -67,6 +71,10 @@ All state is managed locally in the main App component using React hooks:
 - Full card database (~26 MB) loads from Vercel CDN in ~500ms with global edge caching
 - Card images use WebP format with lazy loading for optimal performance
 
+### Engine Recognition
+
+When a YDK file is uploaded, `ComboRecognitionService` scans the deck against `ENGINE_DATABASE` and auto-populates the combo builder for any recognised engines (Fiendsmith, Unchained, Branded/Despia, Snake-Eye, Cyber Dragon, Gem-Knight). See [ENGINE_RECOGNITION.md](ENGINE_RECOGNITION.md) for the full schema and instructions for adding a new engine.
+
 ### Data Architecture
 
 See [CARD_DATABASE_ARCHITECTURE.md](CARD_DATABASE_ARCHITECTURE.md) for detailed information about:
@@ -75,3 +83,14 @@ See [CARD_DATABASE_ARCHITECTURE.md](CARD_DATABASE_ARCHITECTURE.md) for detailed 
 - Caching strategy (7-day localStorage)
 - Update procedures (`npm run upload:card-database`)
 - Fallback mechanisms and reliability
+
+### Combo Sequence Schema
+
+See [COMBO_SEQUENCE_SCHEMA.md](COMBO_SEQUENCE_SCHEMA.md) for the full data contract covering:
+- Ordered step model (description, functional tags, StepCard zones)
+- Endboard definition (field / GY / hand after resolution)
+- Choke points (step index + interrupt categories)
+- Weakness profiles (breaking categories + named counter cards)
+- `valid_from` banlist date and relationship to `ARCHETYPE_DATABASE`
+
+Data lives in `src/data/comboSequenceDatabase.js`.

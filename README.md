@@ -11,6 +11,7 @@ Calculate optimal deck ratios for trading card game combos using Monte Carlo sim
 - **Exact Mathematical Formulas**: View the hypergeometric distributions behind calculations
 - **Hand Trap Mode**: Identify and calculate interaction probabilities
 - **YDK Import**: Import deck lists and test opening hands
+- **Engine Recognition**: Auto-detect popular engines (Fiendsmith, Branded, Snake-Eye, and more) from an uploaded YDK and pre-populate the combo builder
 - **Interactive Combo Assignment**: Assign cards from opening hands to combos
 
 ## 📁 Project Structure
@@ -55,12 +56,16 @@ src/
 │   ├── useToast.js           # Toast notifications
 │   └── useYdkImport.js       # YDK file import
 ├── services/           # Business logic services
-│   ├── CardDatabaseService.js  # Card data management
-│   ├── HandTrapService.js      # Hand trap identification
-│   ├── ProbabilityService.js   # Monte Carlo simulation
-│   ├── TitleGeneratorService.js # Result title generation
-│   ├── URLService.js           # URL state encoding
-│   └── YdkParser.js            # YDK file parsing
+│   ├── CardDatabaseService.js      # Card data management
+│   ├── ComboRecognitionService.js  # Engine detection & combo pre-population
+│   ├── HandTrapService.js          # Hand trap identification
+│   ├── OpeningHandService.js       # Opening hand generation (Fisher-Yates)
+│   ├── ProbabilityService.js       # Monte Carlo simulation
+│   ├── TitleGeneratorService.js    # Result title generation
+│   ├── URLService.js               # URL state encoding
+│   └── YdkParser.js                # YDK file parsing
+├── data/               # Static data
+│   └── engineDatabase.js           # ENGINE_DATABASE for engine recognition
 ├── constants/          # Application constants
 │   └── config.js       # Configuration values
 ├── utils/              # Utility functions
@@ -110,8 +115,10 @@ npm test -- --coverage
 - **ProbabilityService**: Monte Carlo simulation engine (100,000 iterations) with result caching
 - **TitleGeneratorService**: Generates contextual titles for calculation results
 - **URLService**: Encodes/decodes calculation state to/from URL hash for sharing
-- **HandTrapService**: Identifies and categorizes hand trap cards
-- **YdkParser**: Parses YDK deck files and processes card data
+- **HandTrapService**: Identifies hand-trap cards via regex pattern matching on card descriptions and a hardcoded known-cards list
+- **YdkParser**: Parses YDK deck files; uses `/public/cardDatabase.json` for offline ID→name resolution
+- **OpeningHandService**: Generates opening hands using Fisher-Yates shuffle; supports both combo-mode and full YDK-mode hand generation
+- **ComboRecognitionService**: Detects known engines in an uploaded deck and builds pre-populated combo objects (see [ENGINE_RECOGNITION.md](ENGINE_RECOGNITION.md))
 
 ### Custom Hooks
 

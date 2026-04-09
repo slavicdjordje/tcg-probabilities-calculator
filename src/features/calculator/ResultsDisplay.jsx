@@ -229,6 +229,8 @@ const ResultsDisplay = ({
   // State for managing formula visibility (AC#5, AC#6, AC#7)
   const [expandedFormulas, setExpandedFormulas] = useState(new Set());
   const [combinedFormulaExpanded, setCombinedFormulaExpanded] = useState(false);
+  // FDGG-43: individual combo drawer – collapsed by default
+  const [isComboDrawerOpen, setIsComboDrawerOpen] = useState(false);
 
   // Evaluate if user bricked (all combos are unplayable)
   const userBricked = evaluateAllCombosBricked(combos, openingHand);
@@ -563,28 +565,66 @@ const ResultsDisplay = ({
             </div>
           )}
           
-          {/* Individual combo results */}
-          {results.individual.map((result, index) => (
-            <div key={result.id} className="" style={{ marginBottom: '8px' }}>
-              <div className="p-4 rounded-md" style={{ backgroundColor: 'var(--bg-secondary)', border: `1px solid var(--border-main)` }}>
-                <div className="flex items-center">
-                  <p className="font-semibold flex-1" style={typography.body}>
-                    {generateResultText(result)}
-                  </p>
-                  {/* AC#1: Formula button with Phosphor sigma icon */}
-                  <FormulaButton 
-                    onClick={() => toggleIndividualFormula(result.id)}
-                    expanded={expandedFormulas.has(result.id)}
-                  />
-                </div>
+          {/* FDGG-43: Individual combo results – collapsible drawer */}
+          <div style={{ marginTop: '8px' }}>
+            <button
+              onClick={() => setIsComboDrawerOpen(prev => !prev)}
+              className="flex items-center gap-2 w-full text-left"
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '0',
+                cursor: 'pointer',
+                color: 'var(--text-secondary)',
+                fontFamily: 'Geist, sans-serif',
+                fontSize: '14px',
+                lineHeight: '20px',
+              }}
+              aria-expanded={isComboDrawerOpen}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                style={{
+                  transition: 'transform 0.2s ease',
+                  transform: isComboDrawerOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                  flexShrink: 0,
+                  color: 'var(--text-secondary)',
+                }}
+                aria-hidden="true"
+              >
+                <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              See your individual combo chances
+            </button>
+
+            {isComboDrawerOpen && (
+              <div style={{ marginTop: '8px' }}>
+                {results.individual.map((result) => (
+                  <div key={result.id} className="" style={{ marginBottom: '8px' }}>
+                    <div className="p-4 rounded-md" style={{ backgroundColor: 'var(--bg-secondary)', border: `1px solid var(--border-main)` }}>
+                      <div className="flex items-center">
+                        <p className="font-semibold flex-1" style={typography.body}>
+                          {generateResultText(result)}
+                        </p>
+                        <FormulaButton
+                          onClick={() => toggleIndividualFormula(result.id)}
+                          expanded={expandedFormulas.has(result.id)}
+                        />
+                      </div>
+                    </div>
+                    <FormulaDisplay
+                      formulaData={ProbabilityService.generateFormulaData(result, dashboardValues.deckSize, dashboardValues.handSize)}
+                      isExpanded={expandedFormulas.has(result.id)}
+                    />
+                  </div>
+                ))}
               </div>
-              {/* AC#3: Formula display with expand/collapse */}
-              <FormulaDisplay 
-                formulaData={ProbabilityService.generateFormulaData(result, dashboardValues.deckSize, dashboardValues.handSize)}
-                isExpanded={expandedFormulas.has(result.id)}
-              />
-            </div>
-          ))}
+            )}
+          </div>
         </div>
       )}
 
@@ -628,32 +668,6 @@ const ResultsDisplay = ({
         </div>
       )}
       
-      {/* Dashboard Details */}
-      <div className="mt-6 space-y-2">
-        <div className="grid grid-cols-3 gap-4">
-          {dashboardValues.combos.map((combo, index) => (
-            <div key={combo.id} className="pl-4 border-l-2" style={{ borderColor: 'var(--border-secondary)' }}>
-              <p className="font-medium mb-2" style={typography.body}>{combo.name}</p>
-              {combo.cards.map((card, cardIndex) => (
-                <div key={cardIndex} className={cardIndex > 0 ? 'mt-2' : ''}>
-                  <p style={typography.body}>
-                    <span className="font-medium">{card.starterCard || '-'}</span>
-                  </p>
-                  <p style={typography.body}>
-                    <span className="font-medium">Copies:</span> {card.startersInDeck}
-                  </p>
-                  <p style={typography.body}>
-                    <span className="font-medium">Min:</span> {card.minCopiesInHand}
-                  </p>
-                  <p style={typography.body}>
-                    <span className="font-medium">Max:</span> {card.maxCopiesInHand}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };

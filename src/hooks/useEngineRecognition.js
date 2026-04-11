@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import FunctionalRoleInferenceService from '../services/FunctionalRoleInferenceService';
 import ComboSequenceStorageService from '../services/ComboSequenceStorageService';
 import DeltaAnalysisService from '../services/DeltaAnalysisService';
 import LogSequenceMappingService from '../services/LogSequenceMappingService';
@@ -35,14 +34,12 @@ const useEngineRecognition = ({
 }) => {
   const [pieceGroupModal, setPieceGroupModal] = useState(null);
   const [partialMatchModal, setPartialMatchModal] = useState(null);
-  const [isInferring, setIsInferring] = useState(false);
   const [unknownDeckPrompt, setUnknownDeckPrompt] = useState(null);
   const [sequenceDisplay, setSequenceDisplay] = useState(null);
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [aiProbResults, setAiProbResults] = useState(null);
   const [isValidatingLog, setIsValidatingLog] = useState(false);
   const [archetypeResult, setArchetypeResult] = useState(null);
-
   const getMissingSequenceCards = (delta) => {
     const seen = new Set();
     const missing = [];
@@ -86,27 +83,12 @@ const useEngineRecognition = ({
 
     if (matchedSequence) {
       setPieceGroupModal({
-        sequence:        matchedSequence,
-        isLoading:       true,
-        inferenceResult: null,
+        sequence: matchedSequence,
         cardCounts,
         uniqueCards,
         newDeckSize,
         recognizedCombos,
       });
-
-      try {
-        const inferenceResult = await FunctionalRoleInferenceService.inferPieceGroups({
-          sequence:       matchedSequence,
-          deckCardCounts: cardCounts,
-          cardDatabase,
-        });
-        setPieceGroupModal(prev => prev ? { ...prev, isLoading: false, inferenceResult } : null);
-      } catch (err) {
-        console.warn('FunctionalRoleInferenceService failed, falling back to auto-calculate', err);
-        setPieceGroupModal(null);
-        runAutoCalculate(recognizedCombos, cardCounts, uniqueCards, newDeckSize);
-      }
     } else {
       runAutoCalculate(recognizedCombos, cardCounts, uniqueCards, newDeckSize);
     }
@@ -123,35 +105,34 @@ const useEngineRecognition = ({
       ArchetypeRecognitionService.recognize(cardCounts, uniqueCards, promotedArchetypes)
     );
 
-    if (hadEngineMatch) return;
-
-    setAiAnalysis({ isLoading: true, result: null, error: null });
-
-    AIComboGenerationService.generateCombos({
-      deckCardCounts: cardCounts,
-      cardDatabase,
-      ydkCards: uniqueCards,
-    })
-      .then(result => {
-        setAiAnalysis({ isLoading: false, result, error: null });
-        setCombos(result.appCombos.length > 0 ? result.appCombos : [createCombo(1, 0)]);
-
-        if (result.appCombos.length > 0) {
-          const calculatedResults = ProbabilityService.calculateMultipleCombos(
-            result.appCombos, deckSizeVal, handSize, uniqueCards, cardCounts
-          );
-          setAiProbResults(calculatedResults.individual ?? null);
-          setResults(calculatedResults);
-          setDashboardValues({ deckSize: deckSizeVal, handSize, combos: result.appCombos.map(c => ({ ...c })) });
-          const title = TitleGeneratorService.generateFunTitle(result.appCombos, deckSizeVal, calculatedResults.individual);
-          setGeneratedTitle(title);
-          setTimeout(() => scrollToCalculationDashboard(), 800);
-        }
+    // AIComboGenerationService populates the combo builder for unknown decks.
+    if (!hadEngineMatch) {
+      AIComboGenerationService.generateCombos({
+        deckCardCounts: cardCounts,
+        cardDatabase,
+        ydkCards:       uniqueCards,
       })
-      .catch(err => {
-        console.warn('AIComboGenerationService failed:', err);
-        setAiAnalysis({ isLoading: false, result: null, error: err.message });
-      });
+        .then(result => {
+          setAiAnalysis({ isLoading: false, result, error: null });
+          setCombos(result.appCombos.length > 0 ? result.appCombos : [createCombo(1, 0)]);
+
+          if (result.appCombos.length > 0) {
+            const calculatedResults = ProbabilityService.calculateMultipleCombos(
+              result.appCombos, deckSizeVal, handSize, uniqueCards, cardCounts
+            );
+            setAiProbResults(calculatedResults.individual ?? null);
+            setResults(calculatedResults);
+            setDashboardValues({ deckSize: deckSizeVal, handSize, combos: result.appCombos.map(c => ({ ...c })) });
+            const title = TitleGeneratorService.generateFunTitle(result.appCombos, deckSizeVal, calculatedResults.individual);
+            setGeneratedTitle(title);
+            setTimeout(() => scrollToCalculationDashboard(), 800);
+          }
+        })
+        .catch(err => {
+          console.warn('AIComboGenerationService failed:', err);
+        });
+    }
+
   };
 
   const handleUnknownDeck = ({ cardCounts, archetypeScores, cardCount }) => {
@@ -160,43 +141,18 @@ const useEngineRecognition = ({
     setUnknownDeckPrompt({ deckHash, archetypeScores });
   };
 
-  const handlePieceGroupConfirm = (confirmedGroups) => {
+  const handleSequenceConfirmShow = () => {
     if (!pieceGroupModal) return;
-    const { cardCounts, uniqueCards, newDeckSize, recognizedCombos } = pieceGroupModal;
+    const { sequence, cardCounts, uniqueCards, newDeckSize, recognizedCombos } = pieceGroupModal;
     setPieceGroupModal(null);
+    setCombos(recognizedCombos);
 
-    const inferredCombos = confirmedGroups
-      .filter(g => g.qualified.length > 0)
-      .map(g => {
-        const totalCount = g.qualified.reduce((sum, c) => sum + (c.count || 0), 0);
-        const groupLabel = g.qualified.length === 1
-          ? g.qualified[0].name
-          : g.qualified.slice(0, 2).map(c => c.name).join(' / ') + (g.qualified.length > 2 ? ' +more' : '');
-        return {
-          id:    crypto.randomUUID(),
-          name:  `${pieceGroupModal.sequence.name} — Step ${g.stepIndex + 1}`,
-          cards: [{
-            starterCard:     groupLabel,
-            cardId:          null,
-            isCustom:        false,
-            startersInDeck:  totalCount,
-            minCopiesInHand: 1,
-            maxCopiesInHand: totalCount,
-            logicOperator:   'AND',
-          }],
-        };
-      });
-
-    const finalCombos = inferredCombos.length > 0 ? inferredCombos : recognizedCombos;
-    setCombos(finalCombos);
-
-    const { sequence } = pieceGroupModal;
     const extraDeckNames = (deckZones?.extra ?? []).map(c => c.name);
     const delta = DeltaAnalysisService.computeDelta({
       sequence,
       deckCardCounts: cardCounts,
       extraDeckNames,
-      confirmedGroups,
+      confirmedGroups: [],
     });
 
     const missingCards = getMissingSequenceCards(delta);
@@ -206,7 +162,7 @@ const useEngineRecognition = ({
       setSequenceDisplay({ sequence, delta });
     }
 
-    runAutoCalculate(finalCombos, cardCounts, uniqueCards, newDeckSize);
+    runAutoCalculate(recognizedCombos, cardCounts, uniqueCards, newDeckSize);
   };
 
   const handleSequenceCorrected = async (parsedLog) => {
@@ -296,7 +252,6 @@ const useEngineRecognition = ({
     setPieceGroupModal,
     partialMatchModal,
     setPartialMatchModal,
-    isInferring,
     unknownDeckPrompt,
     setUnknownDeckPrompt,
     sequenceDisplay,
@@ -311,7 +266,7 @@ const useEngineRecognition = ({
     handleEnginesRecognized,
     handleDeckReady,
     handleUnknownDeck,
-    handlePieceGroupConfirm,
+    handleSequenceConfirmShow,
     handleSequenceCorrected,
     getMissingSequenceCards,
   };

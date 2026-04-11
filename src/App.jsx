@@ -39,7 +39,7 @@ import { createCombo } from './utils/comboFactory';
 
 // Additional service imports
 import OpeningHandService from './services/OpeningHandService';
-import PieceGroupConfirmationModal from './features/inference/PieceGroupConfirmationModal';
+import ComboSequenceConfirmationModal from './features/inference/ComboSequenceConfirmationModal';
 import PartialMatchModal from './features/combo/PartialMatchModal';
 import DuelingBookLogModal from './features/duelingbook/DuelingBookLogModal';
 import UnknownDeckPromptModal from './features/deck-import/UnknownDeckPromptModal';
@@ -237,7 +237,7 @@ export default function TCGCalculator() {
     handleEnginesRecognized,
     handleDeckReady,
     handleUnknownDeck,
-    handlePieceGroupConfirm,
+    handleSequenceConfirmShow,
   } = useEngineRecognition({
     cardDatabase,
     deckZones,
@@ -1009,7 +1009,7 @@ export default function TCGCalculator() {
           </div>
         </div>
 
-        {/* AI combo analysis panel — shown for unknown decks */}
+        {/* AI combo analysis panel — shown for unknown decks (legacy) */}
         {aiAnalysis && (
           <AIAnalysisPanel
             isLoading={aiAnalysis.isLoading}
@@ -1142,13 +1142,10 @@ export default function TCGCalculator() {
         </AnimatePresence>
       </div>
 
-      {/* Piece-group confirmation modal (FDGG-21) */}
+      {/* Combo sequence confirmation modal (FDGG-55) */}
       {pieceGroupModal && (
-        <PieceGroupConfirmationModal
-          sequence={pieceGroupModal.sequence}
-          inferenceResult={pieceGroupModal.inferenceResult}
-          isLoading={pieceGroupModal.isLoading}
-          onConfirm={handlePieceGroupConfirm}
+        <ComboSequenceConfirmationModal
+          onShow={handleSequenceConfirmShow}
           onCancel={() => {
             const { recognizedCombos, cardCounts, uniqueCards, newDeckSize } = pieceGroupModal;
             setPieceGroupModal(null);

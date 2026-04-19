@@ -150,26 +150,6 @@ export default function TCGCalculator() {
     requestAnimationFrame(step);
   };
 
-  // Engine recognition callback: auto-calculate and scroll after engines are detected
-  const handleEnginesRecognized = (recognizedCombos, cardCounts, uniqueCards, newDeckSize) => {
-    setTimeout(() => {
-      const calculatedResults = ProbabilityService.calculateMultipleCombos(
-        recognizedCombos, newDeckSize, handSize, uniqueCards, cardCounts
-      );
-      setResults(calculatedResults);
-      setDashboardValues({
-        deckSize: newDeckSize,
-        handSize,
-        combos: recognizedCombos.map(c => ({ ...c })),
-      });
-      const title = TitleGeneratorService.generateFunTitle(
-        recognizedCombos, newDeckSize, calculatedResults.individual
-      );
-      setGeneratedTitle(title);
-      setTimeout(() => scrollToCalculationDashboard(), 800);
-    }, 100);
-  };
-
 //   // Top Decks data
 //   const topDecks = [
 //     {
@@ -1332,7 +1312,6 @@ useEffect(() => {
             DeckImageSection={DeckImageSection}
             initialDeckZones={initialDeckZones}
             typography={typography}
-            onEnginesRecognized={handleEnginesRecognized}
           />
 
           {/* Defined combos — collapses to a drawer when more than 1 combo is defined */}

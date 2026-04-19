@@ -34,9 +34,6 @@ const DeckConfigInputs = ({
 
   // Shared props
   typography,
-
-  // Engine recognition callback
-  onEnginesRecognized,
 }) => {
   return (
     <>
@@ -58,7 +55,6 @@ const DeckConfigInputs = ({
         setInitialDeckZones={setInitialDeckZones}
         deckZones={deckZones}
         setDeckZones={setDeckZones}
-        onEnginesRecognized={onEnginesRecognized}
       />
 
       {/* Deck Builder Section */}

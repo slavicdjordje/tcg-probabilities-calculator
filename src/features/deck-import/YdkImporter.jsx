@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import YdkParser from '../../services/YdkParser';
 import HandTrapService from '../../services/HandTrapService';
-import ComboRecognitionService from '../../services/ComboRecognitionService';
 import { createCombo } from '../../utils/comboFactory';
 import Icon from '../../components/Icon';
 import CardSearchDrawer from '../../components/CardSearchDrawer.jsx';
@@ -25,7 +24,6 @@ const YdkImporter = ({
   setInitialDeckZones,
   deckZones,
   setDeckZones,
-  onEnginesRecognized,
 }) => {
   const [showClipboardField, setShowClipboardField] = useState(false);
   const [clipboardContent, setClipboardContent] = useState('');
@@ -95,22 +93,6 @@ const YdkImporter = ({
       if (parseResult.deckZones && setInitialDeckZones) {
         setInitialDeckZones(parseResult.deckZones);
         console.log('🎯 YdkImporter: Populating deck builder with:', parseResult.deckZones);
-      }
-
-      // Engine recognition: auto-populate combos if known engines are detected
-      const matchedEngines = ComboRecognitionService.recognizeEngines(parseResult.cardCounts);
-      if (matchedEngines.length > 0) {
-        const recognizedCombos = ComboRecognitionService.buildCombos(
-          matchedEngines,
-          parseResult.cardCounts,
-          uniqueCards
-        );
-        if (recognizedCombos.length > 0) {
-          setCombos(recognizedCombos);
-          if (onEnginesRecognized) {
-            onEnginesRecognized(recognizedCombos, parseResult.cardCounts, uniqueCards, mainDeckCardCount);
-          }
-        }
       }
 
       if (parseResult.unmatchedIds.length > 0) {
@@ -222,22 +204,6 @@ const YdkImporter = ({
       if (parseResult.deckZones && setInitialDeckZones) {
         setInitialDeckZones(parseResult.deckZones);
         console.log('🎯 YdkImporter (clipboard): Populating deck builder with:', parseResult.deckZones);
-      }
-
-      // Engine recognition: auto-populate combos if known engines are detected
-      const matchedEngines = ComboRecognitionService.recognizeEngines(parseResult.cardCounts);
-      if (matchedEngines.length > 0) {
-        const recognizedCombos = ComboRecognitionService.buildCombos(
-          matchedEngines,
-          parseResult.cardCounts,
-          uniqueCards
-        );
-        if (recognizedCombos.length > 0) {
-          setCombos(recognizedCombos);
-          if (onEnginesRecognized) {
-            onEnginesRecognized(recognizedCombos, parseResult.cardCounts, uniqueCards, mainDeckCardCount);
-          }
-        }
       }
 
       setShowClipboardField(false);

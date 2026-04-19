@@ -55,9 +55,9 @@ const DeckZone = ({
           </div>
         ) : (
           <div
-            className="grid gap-2"
+            className="grid gap-y-2"
             style={{
-              gridTemplateColumns: `repeat(${maxCards}, minmax(0, 1fr))`
+              gridTemplateColumns: `repeat(${maxCards - 1}, minmax(0, 1fr)) 60px`
             }}
           >
             <AnimatePresence>
